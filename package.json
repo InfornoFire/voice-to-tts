@@ -1,0 +1,44 @@
+{
+  "name": "voice-to-tts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "lint": "oxlint . && oxfmt . && pnpm run typecheck",
+    "lint:fix": "oxlint . --fix --fix-suggestions",
+    "prepare": "prek install"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-opener": "2.7.2",
+    "preact": "^11.1.1"
+  },
+  "devDependencies": {
+    "@j178/prek": "^0.5.9",
+    "@preact/preset-vite": "^2.10.6",
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/node": "^26.6.6",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
+    "oxlint-tsgolint": "^7.0.2005",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.16.1",
+      "onFail": "download"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "26.8.2",
+      "onFail": "download"
+    }
+  }
+}

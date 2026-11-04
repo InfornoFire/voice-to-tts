@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "plugins": [
+    "react",
+    "react-perf",
+    "typescript",
+    "unicorn",
+    "import",
+    "jsx-a11y",
+    "vitest",
+    "oxc",
+    "promise",
+    "jsdoc"
+  ],
+  "settings": {
+    "jsdoc": {
+      "ignorePrivate": true
+    }
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    "max-lines-per-function": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/no-unknown-property": "off",
+    "unicorn/filename-case": ["error", { "cases": { "pascalCase": true, "kebabCase": true } }],
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+
+    "jsdoc/check-tag-names": "error",
+    "jsdoc/require-param-name": "error",
+    "jsdoc/require-param-description": "warn",
+    "jsdoc/require-returns-description": "warn",
+    "jsdoc/no-blank-blocks": "warn",
+    "jsdoc/require-property-type": "off"
+  }
+}

@@ -2,5 +2,5 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "ignorePatterns": ["src/ipc/bindings.ts"],
   "sortImports": true,
-  "endOfLine": "crlf"
+  "endOfLine": "lf"
 }

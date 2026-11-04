@@ -33,6 +33,14 @@ types = ["rust"]
 pass_filenames = false
 
 [[repos.hooks]]
+id = "ts-bindings"
+name = "export typescript bindings"
+entry = "bash -c 'cd src-tauri && cargo test export_bindings'"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
 id = "cargo-clippy"
 name = "cargo clippy"
 entry = "bash -c 'cd src-tauri && cargo clippy --all-targets -- -D warnings'"

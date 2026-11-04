@@ -12,13 +12,17 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "voice-to-tts",
-        "width": 800,
-        "height": 600
+        "width": 420,
+        "height": 640,
+        "minWidth": 360,
+        "minHeight": 480,
+        "center": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:"
     }
   },
   "bundle": {

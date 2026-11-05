@@ -8,11 +8,15 @@ pub use event::{EngineEvent, EventSink, Transcript};
 pub use mock::MockEngine;
 pub use state::{EngineState, StateMachine};
 
+use crate::audio::devices::AudioError;
+
 /// Failure to carry out a request made to the engine.
 #[derive(Debug, thiserror::Error)]
 pub enum EngineError {
     #[error("the engine is not running")]
     NotRunning,
+    #[error(transparent)]
+    Audio(#[from] AudioError),
 }
 
 /// The controls the app has over an engine.

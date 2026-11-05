@@ -3,6 +3,7 @@
 use serde::Serialize;
 use specta::Type;
 
+use crate::audio::devices::AudioError;
 use crate::config::ConfigError;
 use crate::engine::EngineError;
 
@@ -12,6 +13,8 @@ use crate::engine::EngineError;
 pub enum ErrorCode {
     ConfigSaveFailed,
     EngineOff,
+    CableMissing,
+    AudioUnavailable,
 }
 
 /// The single recovery button the UI offers next to an error.
@@ -51,6 +54,24 @@ impl From<EngineError> for UserFacingError {
                 code: ErrorCode::EngineOff,
                 message: "Turn the switch on first, then try again.".to_owned(),
                 action: None,
+            },
+            EngineError::Audio(error) => error.into(),
+        }
+    }
+}
+
+impl From<AudioError> for UserFacingError {
+    fn from(error: AudioError) -> Self {
+        match error {
+            AudioError::CableMissing => Self {
+                code: ErrorCode::CableMissing,
+                message: "The virtual microphone is not installed.".to_owned(),
+                action: Some(ErrorAction::Repair),
+            },
+            AudioError::Host(_) => Self {
+                code: ErrorCode::AudioUnavailable,
+                message: "Your audio devices could not be read. Please try again.".to_owned(),
+                action: Some(ErrorAction::Retry),
             },
         }
     }

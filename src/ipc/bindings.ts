@@ -8,6 +8,10 @@ export const commands = {
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
 	/**  Saves `config` and returns the stored value. */
 	updateConfig: (config: Config) => typedError<Config, UserFacingError>(__TAURI_INVOKE("update_config", { config })),
+	/**  Succeeds when the virtual microphone is installed. */
+	checkCable: () => typedError<null, UserFacingError>(__TAURI_INVOKE("check_cable")),
+	/**  Lists the microphones the user can capture from. */
+	listInputDevices: () => typedError<InputDevice[], UserFacingError>(__TAURI_INVOKE("list_input_devices")),
 	getEngineState: () => __TAURI_INVOKE<EngineState>("get_engine_state"),
 	/**  Turns the engine on or off. Progress is reported through state events. */
 	setEnabled: (enabled: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_enabled", { enabled })),
@@ -50,7 +54,15 @@ export type EngineState = { status: "off" } |
 export type ErrorAction = "repair" | "restart" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
-export type ErrorCode = "config_save_failed" | "engine_off";
+export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "audio_unavailable";
+
+/**  A microphone the user can pick. */
+export type InputDevice = {
+	/**  Stable identifier to store in the config. */
+	id: string,
+	name: string,
+	is_default: boolean,
+};
 
 export type StateChanged = EngineState;
 

@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod commands;
 pub mod config;
 pub mod engine;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 use tauri::Manager;
 use tauri_specta::{Builder, collect_commands, collect_events};
 
+use crate::audio::devices::check_cable;
 use crate::config::ConfigStore;
 use crate::engine::MockEngine;
 use crate::events::TauriEventSink;
@@ -22,6 +24,8 @@ fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
         .commands(collect_commands![
             commands::config::get_config,
             commands::config::update_config,
+            commands::devices::check_cable,
+            commands::devices::list_input_devices,
             commands::engine::get_engine_state,
             commands::engine::set_enabled,
             commands::engine::speak_text,
@@ -60,7 +64,7 @@ pub fn run() {
             let events = Arc::new(TauriEventSink::new(app.handle().clone()));
             app.manage(AppState {
                 config: ConfigStore::load(config_path),
-                engine: Box::new(MockEngine::new(events)),
+                engine: Box::new(MockEngine::new(events, check_cable)),
             });
             Ok(())
         })

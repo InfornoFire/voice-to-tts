@@ -27,7 +27,7 @@ function SpeakBox({ disabled, onSpeak }: SpeakBoxProps) {
       }}
     >
       <input
-        class="speak-box-input"
+        class="field speak-box-input"
         type="text"
         value={text}
         disabled={disabled}

@@ -2,10 +2,11 @@ import "./PowerToggle.css";
 
 interface PowerToggleProps {
   checked: boolean;
+  disabled: boolean;
   onToggle: () => void;
 }
 
-function PowerToggle({ checked, onToggle }: PowerToggleProps) {
+function PowerToggle({ checked, disabled, onToggle }: PowerToggleProps) {
   return (
     <button
       type="button"
@@ -13,6 +14,7 @@ function PowerToggle({ checked, onToggle }: PowerToggleProps) {
       aria-checked={checked}
       aria-label="Voice"
       class="power-toggle"
+      disabled={disabled}
       onClick={onToggle}
     >
       <span class="power-toggle-knob" />

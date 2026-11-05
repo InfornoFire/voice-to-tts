@@ -4,7 +4,8 @@ export type {
   EngineState,
   ErrorAction,
   ErrorCode,
+  InputDevice,
   Transcript,
   UserFacingError,
 } from "./bindings";
-export { CommandError, unwrap } from "./result";
+export { CommandError, toUserFacingError, unwrap } from "./result";

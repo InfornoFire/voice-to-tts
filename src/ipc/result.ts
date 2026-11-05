@@ -13,6 +13,15 @@ export class CommandError extends Error {
   }
 }
 
+/** The text to show for a failed command, or null (after logging) when it was not meant for the user. */
+export function toUserFacingError(error: unknown): UserFacingError | null {
+  if (error instanceof CommandError) {
+    return error.detail;
+  }
+  console.error("A command failed unexpectedly.", error);
+  return null;
+}
+
 /** Resolves with the data of a successful command, or throws a {@link CommandError}. */
 export async function unwrap<T>(result: Promise<CommandResult<T>>): Promise<T> {
   const settled = await result;

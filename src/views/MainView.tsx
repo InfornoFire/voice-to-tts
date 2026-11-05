@@ -6,6 +6,7 @@ import Transcript from "../components/Transcript";
 import ViewHeader from "../components/ViewHeader";
 import {
   activeError,
+  canToggleEngine,
   engineState,
   isEngineOn,
   isEngineRunning,
@@ -28,7 +29,11 @@ function MainView() {
       <ViewHeader title="voice-to-tts" actionLabel="Settings" onAction={openSettings} />
       {error && <ErrorBanner error={error} onAction={runErrorAction} />}
       <div class="main-controls">
-        <PowerToggle checked={isEngineOn.value} onToggle={toggleEngine} />
+        <PowerToggle
+          checked={isEngineOn.value}
+          disabled={!canToggleEngine.value}
+          onToggle={toggleEngine}
+        />
         <StatusLine status={engineState.value.status} />
       </div>
       <Transcript utterances={utterances.value} />

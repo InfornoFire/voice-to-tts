@@ -1,14 +1,15 @@
 import { computed, signal } from "@preact/signals";
 
 import {
-  CommandError,
   type EngineState,
   type ErrorAction,
   type UserFacingError,
   commands,
   events,
+  toUserFacingError,
   unwrap,
 } from "../ipc";
+import { cableError, checkCable } from "./devices";
 import { navigate } from "./view";
 
 export const engineState = signal<EngineState>({ status: "off" });
@@ -27,10 +28,13 @@ export const isEngineRunning = computed(() => {
   return status === "listening" || status === "speaking";
 });
 
-/** The failure to show the user, from the engine itself or from the last command. */
+/** Whether the switch can be used. A running engine can always be switched off. */
+export const canToggleEngine = computed(() => isEngineOn.value || cableError.value === null);
+
+/** The failure to show the user, from the virtual microphone, the last command or the engine. */
 export const activeError = computed(() => {
   const state = engineState.value;
-  return commandError.value ?? (state.status === "error" ? state.error : null);
+  return cableError.value ?? commandError.value ?? (state.status === "error" ? state.error : null);
 });
 
 /** Keeps `engineState` in step with the backend. */
@@ -59,7 +63,7 @@ export async function speakText(text: string): Promise<boolean> {
     await unwrap(commands.speakText(text));
     return true;
   } catch (error) {
-    reportCommandFailure(error);
+    commandError.value = toUserFacingError(error);
     return false;
   }
 }
@@ -67,9 +71,16 @@ export async function speakText(text: string): Promise<boolean> {
 /** Does what the button on an error offers. Repair and restart have nothing to run yet. */
 export function runErrorAction(action: ErrorAction) {
   if (action === "retry") {
-    void setEnabled(true);
+    void retry();
   } else if (action === "pick_mic") {
     navigate("settings");
+  }
+}
+
+async function retry() {
+  await checkCable();
+  if (cableError.value === null) {
+    await setEnabled(true);
   }
 }
 
@@ -78,14 +89,6 @@ async function setEnabled(enabled: boolean) {
   try {
     await unwrap(commands.setEnabled(enabled));
   } catch (error) {
-    reportCommandFailure(error);
-  }
-}
-
-function reportCommandFailure(error: unknown) {
-  if (error instanceof CommandError) {
-    commandError.value = error.detail;
-  } else {
-    console.error("A command failed unexpectedly.", error);
+    commandError.value = toUserFacingError(error);
   }
 }

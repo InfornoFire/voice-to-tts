@@ -1,0 +1,36 @@
+.power-toggle {
+  position: relative;
+  width: 7rem;
+  height: 3.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-toggle-off);
+  transition: background-color 150ms;
+}
+
+.power-toggle[aria-checked="true"] {
+  background: var(--color-accent);
+}
+
+.power-toggle-knob {
+  position: absolute;
+  top: 0.375rem;
+  left: 0.375rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--color-toggle-knob);
+  transition: transform 150ms;
+}
+
+.power-toggle[aria-checked="true"] .power-toggle-knob {
+  transform: translateX(3.25rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .power-toggle,
+  .power-toggle-knob {
+    transition: none;
+  }
+}

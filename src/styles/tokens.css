@@ -9,7 +9,9 @@
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-6: 1.5rem;
   --radius-md: 0.5rem;
+  --radius-pill: 999px;
 
   --color-bg: #f6f6f6;
   --color-surface: #ffffff;
@@ -20,6 +22,8 @@
   --color-accent-text: #ffffff;
   --color-danger: #b42318;
   --color-focus: #2563eb;
+  --color-toggle-off: #b4b8c2;
+  --color-toggle-knob: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,5 +37,7 @@
     --color-accent-text: #ffffff;
     --color-danger: #f97066;
     --color-focus: #8fb0ff;
+    --color-toggle-off: #4a4f5c;
+    --color-toggle-knob: #ececec;
   }
 }

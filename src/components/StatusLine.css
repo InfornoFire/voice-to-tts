@@ -1,0 +1,29 @@
+.status-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.status-line::before {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--color-toggle-off);
+  content: "";
+}
+
+.status-line[data-status="listening"]::before,
+.status-line[data-status="speaking"]::before {
+  background: var(--color-accent);
+}
+
+.status-line[data-status="error"] {
+  color: var(--color-danger);
+}
+
+.status-line[data-status="error"]::before {
+  background: var(--color-danger);
+}

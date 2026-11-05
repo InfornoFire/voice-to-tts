@@ -10,7 +10,7 @@ function ViewHeader({ title, actionLabel, onAction }: ViewHeaderProps) {
   return (
     <header class="view-header">
       <h1 class="view-header-title">{title}</h1>
-      <button type="button" class="view-header-action" onClick={onAction}>
+      <button type="button" class="button" onClick={onAction}>
         {actionLabel}
       </button>
     </header>

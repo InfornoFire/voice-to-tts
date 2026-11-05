@@ -1,0 +1,28 @@
+.transcript {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-3);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.transcript-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.transcript-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.transcript-line[data-state="partial"] {
+  color: var(--color-text-muted);
+  font-style: italic;
+}

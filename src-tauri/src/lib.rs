@@ -1,12 +1,18 @@
 pub mod commands;
 pub mod config;
+pub mod engine;
 pub mod error;
+pub mod events;
 pub mod state;
 
+use std::sync::Arc;
+
 use tauri::Manager;
-use tauri_specta::{Builder, collect_commands};
+use tauri_specta::{Builder, collect_commands, collect_events};
 
 use crate::config::ConfigStore;
+use crate::engine::MockEngine;
+use crate::events::TauriEventSink;
 use crate::state::AppState;
 
 /// The commands and events shared by the invoke handler and the TypeScript bindings.
@@ -16,6 +22,14 @@ fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
         .commands(collect_commands![
             commands::config::get_config,
             commands::config::update_config,
+            commands::engine::get_engine_state,
+            commands::engine::set_enabled,
+            commands::engine::speak_text,
+        ])
+        .events(collect_events![
+            events::StateChanged,
+            events::TranscriptFinal,
+            events::TranscriptPartial,
         ])
 }
 
@@ -43,8 +57,10 @@ pub fn run() {
             builder.mount_events(app);
 
             let config_path = app.path().app_config_dir()?.join("config.json");
+            let events = Arc::new(TauriEventSink::new(app.handle().clone()));
             app.manage(AppState {
                 config: ConfigStore::load(config_path),
+                engine: Box::new(MockEngine::new(events)),
             });
             Ok(())
         })

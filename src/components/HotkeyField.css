@@ -1,0 +1,8 @@
+.hotkey-field {
+  text-align: left;
+  cursor: pointer;
+}
+
+.hotkey-field[data-recording="true"] {
+  border-color: var(--color-accent);
+}

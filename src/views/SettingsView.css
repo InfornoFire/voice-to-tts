@@ -1,0 +1,9 @@
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}

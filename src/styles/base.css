@@ -66,6 +66,12 @@ button {
   opacity: 0.6;
 }
 
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+}
+
 .view {
   display: flex;
   flex: 1;

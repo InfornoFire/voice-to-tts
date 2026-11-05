@@ -1,17 +1,21 @@
-.mic-picker {
+.setting {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.mic-picker-label {
+.setting-label {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.mic-picker-hint {
-  margin: 0;
+.setting-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.setting-value {
   color: var(--color-text-muted);
-  font-size: var(--font-size-small);
 }

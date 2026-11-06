@@ -13,6 +13,7 @@ import {
   THREAD_COUNTS,
   TTS_SPEED,
   VOICES,
+  pauseHotkey,
   saveSettings,
   settingsError,
   updateSettings,
@@ -78,6 +79,7 @@ function SettingsView() {
             label="Shortcut to switch on and off"
             value={current.hotkey}
             onChange={(hotkey) => updateSettings({ hotkey })}
+            onRecordingChange={pauseHotkey}
           />
           <CheckboxField
             label="Start minimized"

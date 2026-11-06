@@ -6,6 +6,7 @@ use specta::Type;
 use crate::audio::devices::AudioError;
 use crate::config::ConfigError;
 use crate::engine::EngineError;
+use crate::hotkey::HotkeyError;
 
 /// Machine readable identifier of a failure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -15,6 +16,7 @@ pub enum ErrorCode {
     EngineOff,
     CableMissing,
     AudioUnavailable,
+    HotkeyUnavailable,
 }
 
 /// The single recovery button the UI offers next to an error.
@@ -56,6 +58,18 @@ impl From<EngineError> for UserFacingError {
                 action: None,
             },
             EngineError::Audio(error) => error.into(),
+        }
+    }
+}
+
+impl From<HotkeyError> for UserFacingError {
+    fn from(error: HotkeyError) -> Self {
+        match error {
+            HotkeyError::Unavailable(_) => Self {
+                code: ErrorCode::HotkeyUnavailable,
+                message: "That shortcut can't be used. Another app may already have it, so try a different one.".to_owned(),
+                action: None,
+            },
         }
     }
 }

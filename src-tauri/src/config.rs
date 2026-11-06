@@ -42,7 +42,7 @@ impl Default for Config {
             tts_voice: DEFAULT_TTS_VOICE.to_owned(),
             tts_speed: DEFAULT_TTS_SPEED,
             threads: DEFAULT_THREADS,
-            start_minimized: true,
+            start_minimized: false,
         }
     }
 }

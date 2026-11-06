@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::Serialize;
 use specta::Type;
 
@@ -22,6 +24,25 @@ pub enum EngineEvent {
 /// Receives the events an engine produces.
 pub trait EventSink: Send + Sync {
     fn emit(&self, event: EngineEvent);
+}
+
+/// Passes every event to each of its sinks.
+pub struct FanOutSink {
+    sinks: Vec<Arc<dyn EventSink>>,
+}
+
+impl FanOutSink {
+    pub fn new(sinks: Vec<Arc<dyn EventSink>>) -> Self {
+        Self { sinks }
+    }
+}
+
+impl EventSink for FanOutSink {
+    fn emit(&self, event: EngineEvent) {
+        for sink in &self.sinks {
+            sink.emit(event.clone());
+        }
+    }
 }
 
 #[cfg(test)]

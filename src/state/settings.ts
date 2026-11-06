@@ -31,6 +31,13 @@ export function updateSettings(changes: Partial<Config>) {
   saveTimer = setTimeout(saveSettings, SAVE_DELAY_MS);
 }
 
+/** Stops the global shortcut from switching the engine while a new one is being recorded. */
+export function pauseHotkey(paused: boolean) {
+  unwrap(commands.setHotkeyPaused(paused)).catch((error: unknown) =>
+    console.error("Failed to pause the shortcut.", error),
+  );
+}
+
 /** Saves the settings as shown now. */
 export function saveSettings() {
   clearTimeout(saveTimer);

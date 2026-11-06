@@ -4,7 +4,7 @@ mod event;
 mod mock;
 mod state;
 
-pub use event::{EngineEvent, EventSink, Transcript};
+pub use event::{EngineEvent, EventSink, FanOutSink, Transcript};
 pub use mock::MockEngine;
 pub use state::{EngineState, StateMachine};
 
@@ -30,4 +30,9 @@ pub trait Engine: Send + Sync {
     fn speak_text(&self, text: &str) -> Result<(), EngineError>;
 
     fn state(&self) -> EngineState;
+
+    /// Switches the engine off when it is on and on when it is off.
+    fn toggle(&self) -> Result<(), EngineError> {
+        self.set_enabled(!self.state().is_on())
+    }
 }

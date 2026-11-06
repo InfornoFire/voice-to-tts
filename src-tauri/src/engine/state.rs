@@ -20,6 +20,11 @@ pub enum EngineState {
 }
 
 impl EngineState {
+    /// Whether the engine is starting or up.
+    pub fn is_on(&self) -> bool {
+        matches!(self, Self::Loading | Self::Listening | Self::Speaking)
+    }
+
     /// Whether the engine is up and can take text to speak.
     pub fn is_running(&self) -> bool {
         matches!(self, Self::Listening | Self::Speaking)

@@ -133,7 +133,7 @@ mod tests {
                 tts_voice: "amy".to_owned(),
                 tts_speed: 1.5,
                 threads: 200,
-                start_minimized: false,
+                start_minimized: true,
             })
             .unwrap();
 

@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import { formatShortcut, readShortcut } from "../lib/shortcut";
 import Setting from "./Setting";
@@ -13,11 +13,21 @@ interface HotkeyFieldProps {
   /** The current shortcut, where an empty value means none. */
   value: string;
   onChange: (shortcut: string) => void;
+  /** Called with `true` while a shortcut is being recorded and `false` once it stops. */
+  onRecordingChange: (isRecording: boolean) => void;
 }
 
-function HotkeyField({ label, value, onChange }: HotkeyFieldProps) {
+function HotkeyField({ label, value, onChange, onRecordingChange }: HotkeyFieldProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [wasRejected, setWasRejected] = useState(false);
+
+  useEffect(() => {
+    if (!isRecording) {
+      return undefined;
+    }
+    onRecordingChange(true);
+    return () => onRecordingChange(false);
+  }, [isRecording, onRecordingChange]);
 
   const stopRecording = () => {
     setIsRecording(false);

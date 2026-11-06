@@ -6,7 +6,11 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 /** Commands */
 export const commands = {
 	getConfig: () => __TAURI_INVOKE<Config>("get_config"),
-	/**  Saves `config` and returns the stored value. */
+	/**
+	 *  Saves `config` and returns the stored value.
+	 * 
+	 *  A new shortcut is registered first, so nothing is saved when it is unavailable.
+	 */
 	updateConfig: (config: Config) => typedError<Config, UserFacingError>(__TAURI_INVOKE("update_config", { config })),
 	/**  Succeeds when the virtual microphone is installed. */
 	checkCable: () => typedError<null, UserFacingError>(__TAURI_INVOKE("check_cable")),
@@ -17,6 +21,8 @@ export const commands = {
 	setEnabled: (enabled: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_enabled", { enabled })),
 	/**  Speaks `text` through the virtual microphone. */
 	speakText: (text: string) => typedError<null, UserFacingError>(__TAURI_INVOKE("speak_text", { text })),
+	/**  Stops the shortcut from switching the engine while a new one is being recorded. */
+	setHotkeyPaused: (paused: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_hotkey_paused", { paused })),
 };
 
 /** Events */
@@ -54,7 +60,7 @@ export type EngineState = { status: "off" } |
 export type ErrorAction = "repair" | "restart" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
-export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "audio_unavailable";
+export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "audio_unavailable" | "hotkey_unavailable";
 
 /**  A microphone the user can pick. */
 export type InputDevice = {

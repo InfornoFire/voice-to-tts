@@ -8,7 +8,7 @@ The virtual microphone is provided by VB-CABLE from [www.vb-cable.com](https://w
 
 ## Development
 
-Requirements: Windows 10 or 11 x64, Rust (see `rust-version` in `src-tauri/Cargo.toml`), Node, and pnpm.
+Requirements: Windows 10 or 11 x64, Rust, the Visual Studio 2026 Build Tools (MSVC with the Windows SDK), and pnpm.
 
 ```sh
 pnpm install

@@ -2,11 +2,19 @@
 
 mod event;
 mod mock;
+mod sherpa;
 mod state;
+mod stt;
+mod tts;
+mod vad;
 
 pub use event::{EngineEvent, EventSink, FanOutSink, Transcript};
 pub use mock::MockEngine;
+pub use sherpa::{SherpaTts, SileroVad, ZipformerStt};
 pub use state::{EngineState, StateMachine};
+pub use stt::Stt;
+pub use tts::Tts;
+pub use vad::Vad;
 
 use crate::audio::devices::AudioError;
 
@@ -17,6 +25,17 @@ pub enum EngineError {
     NotRunning,
     #[error(transparent)]
     Audio(#[from] AudioError),
+    #[error(transparent)]
+    Speech(#[from] SpeechError),
+}
+
+/// Failure of a speech model.
+#[derive(Debug, thiserror::Error)]
+pub enum SpeechError {
+    #[error("could not load the {0} model")]
+    Load(&'static str),
+    #[error("could not turn the text into speech")]
+    Synthesis,
 }
 
 /// The controls the app has over an engine.

@@ -60,7 +60,7 @@ export type EngineState = { status: "off" } |
 export type ErrorAction = "repair" | "restart" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
-export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "hotkey_unavailable";
+export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "speech_failed" | "hotkey_unavailable";
 
 /**  A microphone the user can pick. */
 export type InputDevice = {

@@ -5,7 +5,7 @@ use specta::Type;
 
 use crate::audio::devices::AudioError;
 use crate::config::ConfigError;
-use crate::engine::EngineError;
+use crate::engine::{EngineError, SpeechError};
 use crate::hotkey::HotkeyError;
 
 /// Machine readable identifier of a failure.
@@ -17,6 +17,8 @@ pub enum ErrorCode {
     CableMissing,
     MicUnavailable,
     AudioUnavailable,
+    ModelsUnavailable,
+    SpeechFailed,
     HotkeyUnavailable,
 }
 
@@ -59,6 +61,25 @@ impl From<EngineError> for UserFacingError {
                 action: None,
             },
             EngineError::Audio(error) => error.into(),
+            EngineError::Speech(error) => error.into(),
+        }
+    }
+}
+
+impl From<SpeechError> for UserFacingError {
+    fn from(error: SpeechError) -> Self {
+        match error {
+            SpeechError::Load(_) => Self {
+                code: ErrorCode::ModelsUnavailable,
+                message: "The speech models could not be loaded. Repairing them may help."
+                    .to_owned(),
+                action: Some(ErrorAction::Repair),
+            },
+            SpeechError::Synthesis => Self {
+                code: ErrorCode::SpeechFailed,
+                message: "That could not be spoken. Please try different text.".to_owned(),
+                action: None,
+            },
         }
     }
 }

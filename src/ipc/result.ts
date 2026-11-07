@@ -13,7 +13,7 @@ export class CommandError extends Error {
   }
 }
 
-/** The text to show for a failed command, or null (after logging) when it was not meant for the user. */
+/** The text to show for a failed command, or null for an unexpected failure. */
 export function toUserFacingError(error: unknown): UserFacingError | null {
   if (error instanceof CommandError) {
     return error.detail;

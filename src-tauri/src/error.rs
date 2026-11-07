@@ -15,6 +15,7 @@ pub enum ErrorCode {
     ConfigSaveFailed,
     EngineOff,
     CableMissing,
+    MicUnavailable,
     AudioUnavailable,
     HotkeyUnavailable,
 }
@@ -82,7 +83,17 @@ impl From<AudioError> for UserFacingError {
                 message: "The virtual microphone is not installed.".to_owned(),
                 action: Some(ErrorAction::Repair),
             },
-            AudioError::Host(_) => Self {
+            AudioError::OpenCable(_) => Self {
+                code: ErrorCode::CableMissing,
+                message: "The virtual microphone could not be opened.".to_owned(),
+                action: Some(ErrorAction::Repair),
+            },
+            AudioError::MicUnavailable | AudioError::OpenMic(_) => Self {
+                code: ErrorCode::MicUnavailable,
+                message: "Your microphone could not be used. Check that it is plugged in, or pick another one.".to_owned(),
+                action: Some(ErrorAction::PickMic),
+            },
+            AudioError::Host(_) | AudioError::Resample(_) => Self {
                 code: ErrorCode::AudioUnavailable,
                 message: "Your audio devices could not be read. Please try again.".to_owned(),
                 action: Some(ErrorAction::Retry),

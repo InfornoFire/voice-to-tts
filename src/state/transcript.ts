@@ -13,7 +13,7 @@ const MAX_UTTERANCES = 200;
 
 export const utterances = signal<Utterance[]>([]);
 
-/** Adds a transcript, or updates the utterance it belongs to. A late partial never undoes a final. */
+/** Adds a transcript or updates its utterance. A late partial never undoes a final. */
 export function mergeTranscript(
   list: Utterance[],
   transcript: Transcript,

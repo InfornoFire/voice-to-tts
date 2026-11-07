@@ -19,6 +19,7 @@ ringbuf = "0.6"
 rubato = "5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sherpa-onnx = "2"
 specta = { version = "=2.0.0-rc.26", features = ["derive"] }
 specta-typescript = "=0.0.13"
 tauri = { version = "2", features = ["tray-icon"] }
@@ -27,7 +28,7 @@ tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 tauri-specta = { version = "=2.0.0-rc.26", features = ["derive", "typescript"] }
 thiserror = "2"
-windows = { version = "0.62", features = ["Win32_System_Threading"] }
+windows = { version = "0.62", features = ["Win32_System_ProcessStatus", "Win32_System_Threading"] }
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }

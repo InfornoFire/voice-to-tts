@@ -203,6 +203,7 @@ mod tests {
     use crate::engine::fakes::FakeResources;
     use crate::engine::{EngineEvent, Heard, INPUT_SAMPLE_RATE, LocalResources, Transcript};
     use crate::error::ErrorCode;
+    use crate::models::{HttpFetch, Manifest, ModelManager, ModelsState};
 
     fn speech() -> Vec<f32> {
         vec![1.0; 10]
@@ -344,18 +345,35 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs the models downloaded to the models directory"]
+    #[ignore = "downloads the models to the models directory"]
     fn downloaded_models_recognize_their_own_speech() {
         let local_data = std::env::var_os("LOCALAPPDATA").expect("LOCALAPPDATA should be set");
         let models_dir = std::path::PathBuf::from(local_data)
             .join("com.inforno.voice-to-tts")
             .join("models");
-        let mut models = LocalResources::new(models_dir)
+        let manager = ModelManager::new(
+            models_dir,
+            Manifest::bundled(),
+            Box::new(HttpFetch::new()),
+            Box::new(|_| {}),
+        );
+        assert_eq!(manager.download(), ModelsState::Ready);
+        let mut models = LocalResources::new(manager.dir().to_owned(), manager.voices().to_vec())
             .load_models(&Config::default())
             .unwrap();
 
         let sentence = "Hello there, this is a test of the voice proxy.";
-        let speech = models.tts.synthesize(sentence, 1.0).unwrap();
+        let first_voice = manager.voices().first().unwrap();
+        let last_voice = manager.voices().last().unwrap();
+        let speech = models
+            .tts
+            .synthesize(sentence, &first_voice.id, 1.0)
+            .unwrap();
+        let other_speech = models
+            .tts
+            .synthesize(sentence, &last_voice.id, 1.0)
+            .unwrap();
+        assert_ne!(speech, other_speech);
         let speech = resample_clip(&speech, models.tts.sample_rate(), INPUT_SAMPLE_RATE).unwrap();
         let mut audio = vec![0.0; INPUT_SAMPLE_RATE as usize];
         audio.extend(speech);

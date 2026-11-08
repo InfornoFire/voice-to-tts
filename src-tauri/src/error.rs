@@ -7,6 +7,7 @@ use crate::audio::devices::AudioError;
 use crate::config::ConfigError;
 use crate::engine::{EngineError, SpeechError};
 use crate::hotkey::HotkeyError;
+use crate::models::ModelsError;
 
 /// Machine readable identifier of a failure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -18,6 +19,7 @@ pub enum ErrorCode {
     MicUnavailable,
     AudioUnavailable,
     ModelsUnavailable,
+    ModelsDownloadFailed,
     SpeechFailed,
     HotkeyUnavailable,
 }
@@ -80,6 +82,29 @@ impl From<SpeechError> for UserFacingError {
                 message: "That could not be spoken. Please try different text.".to_owned(),
                 action: None,
             },
+        }
+    }
+}
+
+impl From<ModelsError> for UserFacingError {
+    fn from(error: ModelsError) -> Self {
+        let message = match error {
+            ModelsError::Download { .. } => {
+                "The speech models could not be downloaded. Check your internet connection and try again."
+            }
+            ModelsError::Integrity { .. } => {
+                "A downloaded file was damaged, so it was not kept. Please try again."
+            }
+            ModelsError::Write { .. } => {
+                "The speech models could not be saved. Check that your disk has free space and try again."
+            }
+            ModelsError::Cancelled => "The download was cancelled.",
+            ModelsError::Interrupted => "The download stopped unexpectedly. Please try again.",
+        };
+        Self {
+            code: ErrorCode::ModelsDownloadFailed,
+            message: message.to_owned(),
+            action: Some(ErrorAction::Retry),
         }
     }
 }

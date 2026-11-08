@@ -1,0 +1,68 @@
+{
+  "files": [
+    {
+      "path": "silero_vad.onnx",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
+      "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+      "size": 643854
+    },
+    {
+      "path": "lexicon-en-us.txt",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/lexicon-en-us.txt",
+      "sha256": "8b67ae549a465eee78f92ecb74644ad90c3c58ce65f19c68baf85878a10ef73a",
+      "size": 6305773
+    },
+    {
+      "path": "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/encoder.onnx",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/resolve/572aaf4e2e0c603c3fc2a574d096e755a178faa1/encoder.onnx",
+      "sha256": "d4881c57449d581e0770fd53fa66c2fdc6cd167d92ece7c715e603defc96d9d4",
+      "size": 70092599
+    },
+    {
+      "path": "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/decoder.onnx",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/resolve/572aaf4e2e0c603c3fc2a574d096e755a178faa1/decoder.onnx",
+      "sha256": "455ba38466fce8d5a57e7db68a323b684079ca4d9e1dd93a740d9b2429aae3b1",
+      "size": 617488
+    },
+    {
+      "path": "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/joiner.onnx",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/resolve/572aaf4e2e0c603c3fc2a574d096e755a178faa1/joiner.onnx",
+      "sha256": "d406f616736350e2a7df3e39398b78eb2fc1a2ca6973a19d3853fa3227e25b52",
+      "size": 336817
+    },
+    {
+      "path": "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/tokens.txt",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06/resolve/572aaf4e2e0c603c3fc2a574d096e755a178faa1/tokens.txt",
+      "sha256": "396dbeb5f4858875690716084f54e90d339679d0ba3e6b5b584f3d7589254d2d",
+      "size": 6310
+    },
+    {
+      "path": "kitten-nano-en-v0_8-int8/model.int8.onnx",
+      "url": "https://huggingface.co/csukuangfj2/kitten-nano-en-v0_8-int8/resolve/90dfe12687f7822a90e5afc5931b536ba6caf22a/model.int8.onnx",
+      "sha256": "0ba1e21eda9c8bcc4a70ada7e0d27fefc9ba775aaa037547248ec71f9a3d9b7d",
+      "size": 24370878
+    },
+    {
+      "path": "kitten-nano-en-v0_8-int8/voices.bin",
+      "url": "https://huggingface.co/csukuangfj2/kitten-nano-en-v0_8-int8/resolve/90dfe12687f7822a90e5afc5931b536ba6caf22a/voices.bin",
+      "sha256": "d520519c4a3519d44fcfcd943ed0b1e3c5da5cee0eea501d922fac1a93cd24dc",
+      "size": 3276800
+    },
+    {
+      "path": "kitten-nano-en-v0_8-int8/tokens.txt",
+      "url": "https://huggingface.co/csukuangfj2/kitten-nano-en-v0_8-int8/resolve/90dfe12687f7822a90e5afc5931b536ba6caf22a/tokens.txt",
+      "sha256": "934a4188addc7665dd3410256bb622169242357fbb99d840d9351209b486dabb",
+      "size": 1064
+    }
+  ],
+  "voices": [
+    { "id": "jasper", "name": "Jasper (male)", "speaker": 0 },
+    { "id": "bella", "name": "Bella (female)", "speaker": 1 },
+    { "id": "bruno", "name": "Bruno (male)", "speaker": 2 },
+    { "id": "luna", "name": "Luna (female)", "speaker": 3 },
+    { "id": "hugo", "name": "Hugo (male)", "speaker": 4 },
+    { "id": "rosie", "name": "Rosie (female)", "speaker": 5 },
+    { "id": "leo", "name": "Leo (male)", "speaker": 6 },
+    { "id": "kiki", "name": "Kiki (female)", "speaker": 7 }
+  ]
+}

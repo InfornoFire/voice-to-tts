@@ -23,10 +23,22 @@ export const commands = {
 	speakText: (text: string) => typedError<null, UserFacingError>(__TAURI_INVOKE("speak_text", { text })),
 	/**  Stops the shortcut from switching the engine while a new one is being recorded. */
 	setHotkeyPaused: (paused: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_hotkey_paused", { paused })),
+	/**  Stops a running download. */
+	cancelModelsDownload: () => __TAURI_INVOKE<void>("cancel_models_download"),
+	/**
+	 *  Downloads the missing or damaged model files, resolving with the state it ends in.
+	 * 
+	 *  Progress is reported through state events.
+	 */
+	downloadModels: () => typedError<ModelsState, UserFacingError>(__TAURI_INVOKE("download_models")),
+	getModelsState: () => __TAURI_INVOKE<ModelsState>("get_models_state"),
+	/**  Lists the voices the speech can be spoken in, the first being the default. */
+	listVoices: () => __TAURI_INVOKE<Voice[]>("list_voices"),
 };
 
 /** Events */
 export const events = {
+	modelsStateChanged: makeEvent<ModelsStateChanged, ModelsStateChanged>("models-state-changed"),
 	stateChanged: makeEvent<StateChanged, StateChanged>("state-changed"),
 	transcriptFinal: makeEvent<TranscriptFinal, TranscriptFinal>("transcript-final"),
 	transcriptPartial: makeEvent<TranscriptPartial, TranscriptPartial>("transcript-partial"),
@@ -60,7 +72,7 @@ export type EngineState = { status: "off" } |
 export type ErrorAction = "repair" | "restart" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
-export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "speech_failed" | "hotkey_unavailable";
+export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "models_download_failed" | "speech_failed" | "hotkey_unavailable";
 
 /**  A microphone the user can pick. */
 export type InputDevice = {
@@ -69,6 +81,15 @@ export type InputDevice = {
 	name: string,
 	is_default: boolean,
 };
+
+/**  Whether the model files are ready to use. */
+export type ModelsState = { status: "ready" } | 
+/**  Some files are missing, or have the wrong size. */
+{ status: "missing"; 
+/**  What is left to download in bytes. */
+bytes: number } | { status: "downloading"; downloaded: number; total: number } | { status: "failed"; error: UserFacingError };
+
+export type ModelsStateChanged = ModelsState;
 
 export type StateChanged = EngineState;
 
@@ -88,6 +109,15 @@ export type UserFacingError = {
 	code: ErrorCode,
 	message: string,
 	action: ErrorAction | null,
+};
+
+/**  A voice of the speech synthesis model. */
+export type Voice = {
+	/**  Stable identifier to store in the config. */
+	id: string,
+	name: string,
+	/**  The number the model knows the voice by. */
+	speaker: number,
 };
 
 /* Tauri Specta runtime */

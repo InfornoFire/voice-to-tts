@@ -9,6 +9,7 @@ use crate::audio::microphone::Microphone;
 use crate::audio::playback::CableOutput;
 use crate::audio::{AudioInput, AudioOutput};
 use crate::config::Config;
+use crate::models::Voice;
 
 /// The directory of the speech recognition model within the models directory.
 pub(super) const RECOGNIZER_DIR: &str = "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06";
@@ -23,11 +24,13 @@ pub(super) const RECOGNIZER_FILES: ZipformerFiles = ZipformerFiles {
 /// The audio devices of this machine and the models in a directory.
 pub struct LocalResources {
     models_dir: PathBuf,
+    voices: Vec<Voice>,
 }
 
 impl LocalResources {
-    pub fn new(models_dir: PathBuf) -> Self {
-        Self { models_dir }
+    /// The first of the `voices` is the default.
+    pub fn new(models_dir: PathBuf, voices: Vec<Voice>) -> Self {
+        Self { models_dir, voices }
     }
 }
 
@@ -56,7 +59,12 @@ impl Resources for LocalResources {
                 RECOGNIZER_FILES,
                 config.threads,
             )?),
-            tts: Box::new(SherpaTts::kitten(&voice, &lexicon, config.threads)?),
+            tts: Box::new(SherpaTts::kitten(
+                &voice,
+                &lexicon,
+                self.voices.clone(),
+                config.threads,
+            )?),
         })
     }
 }

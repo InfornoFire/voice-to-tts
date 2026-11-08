@@ -187,8 +187,8 @@ fn speak(
         }
 
         shared.state.transition(EngineState::Speaking);
-        let speed = (shared.settings)().tts_speed;
-        match tts.synthesize(&text, speed) {
+        let config = (shared.settings)();
+        match tts.synthesize(&text, &config.tts_voice, config.tts_speed) {
             Ok(samples) => {
                 if let Err(error) = output.play(&samples, tts.sample_rate()) {
                     shared.fail(error.into());

@@ -7,17 +7,26 @@ use sherpa_onnx::{
 
 use super::path_text;
 use crate::engine::{SpeechError, Tts};
+use crate::models::Voice;
 
 const MODEL_KIND: &str = "speech synthesis";
 
 /// Speech synthesis with a model that reads text through an English lexicon.
 pub struct SherpaTts {
     tts: OfflineTts,
+    voices: Vec<Voice>,
 }
 
 impl SherpaTts {
     /// Loads the Kokoro model in `model_dir`, using at most `threads` threads.
-    pub fn kokoro(model_dir: &Path, lexicon: &Path, threads: u8) -> Result<Self, SpeechError> {
+    ///
+    /// The first of the `voices` is the default.
+    pub fn kokoro(
+        model_dir: &Path,
+        lexicon: &Path,
+        voices: Vec<Voice>,
+        threads: u8,
+    ) -> Result<Self, SpeechError> {
         let file = |name: &str| path_text(&model_dir.join(name), MODEL_KIND).map(Some);
         let model = OfflineTtsModelConfig {
             kokoro: OfflineTtsKokoroModelConfig {
@@ -30,11 +39,18 @@ impl SherpaTts {
             num_threads: i32::from(threads),
             ..Default::default()
         };
-        Self::create(model)
+        Self::create(model, voices)
     }
 
     /// Loads the Kitten model in `model_dir`, using at most `threads` threads.
-    pub fn kitten(model_dir: &Path, lexicon: &Path, threads: u8) -> Result<Self, SpeechError> {
+    ///
+    /// The first of the `voices` is the default.
+    pub fn kitten(
+        model_dir: &Path,
+        lexicon: &Path,
+        voices: Vec<Voice>,
+        threads: u8,
+    ) -> Result<Self, SpeechError> {
         let file = |name: &str| path_text(&model_dir.join(name), MODEL_KIND).map(Some);
         let model = OfflineTtsModelConfig {
             kitten: OfflineTtsKittenModelConfig {
@@ -47,16 +63,23 @@ impl SherpaTts {
             num_threads: i32::from(threads),
             ..Default::default()
         };
-        Self::create(model)
+        Self::create(model, voices)
     }
 
-    fn create(model: OfflineTtsModelConfig) -> Result<Self, SpeechError> {
+    fn create(model: OfflineTtsModelConfig, voices: Vec<Voice>) -> Result<Self, SpeechError> {
         let config = OfflineTtsConfig {
             model,
             ..Default::default()
         };
         let tts = OfflineTts::create(&config).ok_or(SpeechError::Load(MODEL_KIND))?;
-        Ok(Self { tts })
+        Ok(Self { tts, voices })
+    }
+
+    fn speaker(&self, voice: &str) -> i32 {
+        let known = self.voices.iter().find(|known| known.id == voice);
+        known
+            .or(self.voices.first())
+            .map_or(0, |voice| voice.speaker as i32)
     }
 }
 
@@ -65,7 +88,7 @@ impl Tts for SherpaTts {
         self.tts.sample_rate() as u32
     }
 
-    fn synthesize(&mut self, text: &str, speed: f32) -> Result<Vec<f32>, SpeechError> {
+    fn synthesize(&mut self, text: &str, voice: &str, speed: f32) -> Result<Vec<f32>, SpeechError> {
         // C strings cannot hold a null character.
         let text = text.replace('\0', "");
         if text.trim().is_empty() {
@@ -74,6 +97,7 @@ impl Tts for SherpaTts {
 
         let config = GenerationConfig {
             speed,
+            sid: self.speaker(voice),
             ..Default::default()
         };
         let audio = self

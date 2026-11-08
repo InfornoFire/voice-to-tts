@@ -47,7 +47,12 @@ impl Tts for LetterTts {
         INPUT_SAMPLE_RATE
     }
 
-    fn synthesize(&mut self, text: &str, _speed: f32) -> Result<Vec<f32>, SpeechError> {
+    fn synthesize(
+        &mut self,
+        text: &str,
+        _voice: &str,
+        _speed: f32,
+    ) -> Result<Vec<f32>, SpeechError> {
         Ok(vec![0.5; text.len()])
     }
 }

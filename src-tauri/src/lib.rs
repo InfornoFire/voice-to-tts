@@ -5,6 +5,7 @@ pub mod engine;
 pub mod error;
 pub mod events;
 pub mod hotkey;
+pub mod models;
 pub mod platform;
 pub mod shell;
 pub mod state;
@@ -19,6 +20,7 @@ use crate::config::ConfigStore;
 use crate::engine::{Engine, EventSink, FanOutSink};
 use crate::events::TauriEventSink;
 use crate::hotkey::{GlobalHotkeys, Hotkeys};
+use crate::models::{HttpFetch, Manifest, ModelManager};
 use crate::state::AppState;
 
 /// The commands and events shared by the invoke handler and the TypeScript bindings.
@@ -34,8 +36,13 @@ fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
             commands::engine::set_enabled,
             commands::engine::speak_text,
             commands::hotkey::set_hotkey_paused,
+            commands::models::cancel_models_download,
+            commands::models::download_models,
+            commands::models::get_models_state,
+            commands::models::list_voices,
         ])
         .events(collect_events![
+            events::ModelsStateChanged,
             events::StateChanged,
             events::TranscriptFinal,
             events::TranscriptPartial,
@@ -52,33 +59,47 @@ fn export_bindings<R: tauri::Runtime>(builder: &Builder<R>) {
         .expect("failed to export the TypeScript bindings");
 }
 
+/// Creates the manager of the model files in the app's data directory.
+fn create_models(app: &tauri::App) -> tauri::Result<ModelManager> {
+    let dir = app.path().app_local_data_dir()?.join("models");
+    let manifest = Manifest::bundled();
+    // The scripted engine needs no model files.
+    #[cfg(feature = "mock-engine")]
+    let manifest = Manifest {
+        files: Vec::new(),
+        ..manifest
+    };
+    Ok(ModelManager::new(
+        dir,
+        manifest,
+        Box::new(HttpFetch::new()),
+        Box::new(events::models_state_listener(app.handle().clone())),
+    ))
+}
+
 /// Creates the engine that runs the speech models on this machine.
 #[cfg(not(feature = "mock-engine"))]
 fn create_engine(
-    app: &tauri::App,
     events: Arc<dyn EventSink>,
     config: &Arc<ConfigStore>,
-) -> tauri::Result<Box<dyn Engine>> {
-    let models_dir = app.path().app_local_data_dir()?.join("models");
+    models: &ModelManager,
+) -> Box<dyn Engine> {
     let config = Arc::clone(config);
-    Ok(Box::new(engine::PipelineEngine::new(
+    Box::new(engine::PipelineEngine::new(
         events,
-        engine::LocalResources::new(models_dir),
+        engine::LocalResources::new(models.dir().to_owned(), models.voices().to_vec()),
         move || config.get(),
-    )))
+    ))
 }
 
 /// Creates the engine that replays a script, without audio devices or models.
 #[cfg(feature = "mock-engine")]
 fn create_engine(
-    _app: &tauri::App,
     events: Arc<dyn EventSink>,
     _config: &Arc<ConfigStore>,
-) -> tauri::Result<Box<dyn Engine>> {
-    Ok(Box::new(engine::MockEngine::new(
-        events,
-        audio::devices::check_cable,
-    )))
+    _models: &ModelManager,
+) -> Box<dyn Engine> {
+    Box::new(engine::MockEngine::new(events, audio::devices::check_cable))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -120,10 +141,12 @@ pub fn run() {
             // A shortcut that cannot be registered here can be replaced in the settings.
             let _ = hotkeys.replace("", &hotkey);
 
+            let models = Arc::new(create_models(app)?);
             app.manage(AppState {
-                engine: create_engine(app, events, &config)?,
+                engine: create_engine(events, &config, &models),
                 config,
                 hotkeys: Box::new(hotkeys),
+                models,
             });
             Ok(())
         })

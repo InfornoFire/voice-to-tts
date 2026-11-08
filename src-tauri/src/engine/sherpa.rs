@@ -156,10 +156,12 @@ mod tests {
             ZipformerStt::load(&models.join(RECOGNIZER_DIR), RECOGNIZER_FILES, THREADS).unwrap()
         });
         let mut kokoro = timed("load Kokoro", || {
-            SherpaTts::kokoro(&models.join("kokoro-int8-en-v0_19"), &lexicon, THREADS).unwrap()
+            let dir = models.join("kokoro-int8-en-v0_19");
+            SherpaTts::kokoro(&dir, &lexicon, Vec::new(), THREADS).unwrap()
         });
         let mut kitten = timed("load Kitten", || {
-            SherpaTts::kitten(&models.join("kitten-nano-en-v0_8-int8"), &lexicon, THREADS).unwrap()
+            let dir = models.join("kitten-nano-en-v0_8-int8");
+            SherpaTts::kitten(&dir, &lexicon, Vec::new(), THREADS).unwrap()
         });
 
         let samples_dir = models.join("samples");
@@ -167,12 +169,13 @@ mod tests {
         let voices: [(&str, &mut dyn Tts); 2] = [("kokoro", &mut kokoro), ("kitten", &mut kitten)];
         for (name, tts) in voices {
             let speech = timed(&format!("{name} synthesizes"), || {
-                tts.synthesize(SENTENCE, 1.0).unwrap()
+                tts.synthesize(SENTENCE, "default", 1.0).unwrap()
             });
             let seconds = speech.len() as f64 / f64::from(tts.sample_rate());
             println!("{name} speech: {seconds:.2} s at {} Hz", tts.sample_rate());
             timed(&format!("{name} synthesizes a short phrase"), || {
-                tts.synthesize("Okay, sounds good.", 1.0).unwrap()
+                tts.synthesize("Okay, sounds good.", "default", 1.0)
+                    .unwrap()
             });
             save_wav(
                 &samples_dir.join(format!("{name}.wav")),

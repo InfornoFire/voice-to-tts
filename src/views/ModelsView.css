@@ -1,0 +1,16 @@
+.models-view {
+  justify-content: center;
+}
+
+.models-view-title {
+  margin: 0;
+  font-size: var(--font-size-title);
+}
+
+.models-view p {
+  margin: 0;
+}
+
+.models-view .button {
+  align-self: flex-start;
+}

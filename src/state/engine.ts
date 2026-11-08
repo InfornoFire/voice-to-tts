@@ -3,6 +3,7 @@ import { computed, signal } from "@preact/signals";
 import {
   type EngineState,
   type ErrorAction,
+  type ErrorCode,
   type UserFacingError,
   commands,
   events,
@@ -10,6 +11,7 @@ import {
   unwrap,
 } from "../ipc";
 import { cableError, checkCable } from "./devices";
+import { downloadModels } from "./models";
 import { navigate } from "./view";
 
 export const engineState = signal<EngineState>({ status: "off" });
@@ -68,12 +70,23 @@ export async function speakText(text: string): Promise<boolean> {
   }
 }
 
-/** Does what the button on an error offers. Repair and restart have nothing to run yet. */
-export function runErrorAction(action: ErrorAction) {
+/** Does what the button on an error offers. Restart and repairing the cable have nothing to run yet. */
+export function runErrorAction(action: ErrorAction, code: ErrorCode) {
   if (action === "retry") {
     void retry();
   } else if (action === "pick_mic") {
     navigate("settings");
+  } else if (action === "repair" && code === "models_unavailable") {
+    void repairModels();
+  }
+}
+
+/** Downloads the missing or damaged models, then switches the engine on again if they stopped it. */
+export async function repairModels() {
+  const state = engineState.peek();
+  const stoppedByModels = state.status === "error" && state.error.code === "models_unavailable";
+  if ((await downloadModels()) && stoppedByModels) {
+    await retry();
   }
 }
 

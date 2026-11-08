@@ -9,9 +9,6 @@ const SAVE_DELAY_MS = 400;
 export const TTS_SPEED = { min: 0.5, max: 2, step: 0.1, fallback: 1 };
 export const THREAD_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8];
 
-/** The voices to pick from until the installed voices can be listed. */
-export const VOICES = [{ value: "default", label: "Default" }];
-
 /** Why the settings could not be saved. */
 export const settingsError = signal<UserFacingError | null>(null);
 

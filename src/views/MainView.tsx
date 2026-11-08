@@ -27,7 +27,9 @@ function MainView() {
   return (
     <main class="view">
       <ViewHeader title="voice-to-tts" actionLabel="Settings" onAction={openSettings} />
-      {error && <ErrorBanner error={error} onAction={runErrorAction} />}
+      {error && (
+        <ErrorBanner error={error} onAction={(action) => runErrorAction(action, error.code)} />
+      )}
       <div class="main-controls">
         <PowerToggle
           checked={isEngineOn.value}

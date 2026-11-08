@@ -5,7 +5,9 @@ export type {
   ErrorAction,
   ErrorCode,
   InputDevice,
+  ModelsState,
   Transcript,
   UserFacingError,
+  Voice,
 } from "./bindings";
 export { CommandError, toUserFacingError, unwrap } from "./result";

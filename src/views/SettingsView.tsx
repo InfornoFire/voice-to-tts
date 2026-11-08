@@ -9,10 +9,10 @@ import SelectField from "../components/SelectField";
 import ViewHeader from "../components/ViewHeader";
 import { config } from "../state/config";
 import { deviceError, inputDevices, refreshInputDevices } from "../state/devices";
+import { voices } from "../state/models";
 import {
   THREAD_COUNTS,
   TTS_SPEED,
-  VOICES,
   pauseHotkey,
   saveSettings,
   settingsError,
@@ -41,6 +41,10 @@ function SettingsView() {
   const current = config.value;
   const saveFailed = settingsError.value !== null;
   const error = settingsError.value ?? deviceError.value;
+  const voiceOptions = voices.value.map((voice) => ({ value: voice.id, label: voice.name }));
+  // A stored voice that no longer exists is spoken with the default, which is the first.
+  const isKnownVoice = voices.value.some((voice) => voice.id === current?.tts_voice);
+  const selectedVoice = isKnownVoice ? current?.tts_voice : voices.value[0]?.id;
 
   return (
     <main class="view">
@@ -55,8 +59,8 @@ function SettingsView() {
           />
           <SelectField
             label="Voice"
-            value={current.tts_voice}
-            options={VOICES}
+            value={selectedVoice ?? current.tts_voice}
+            options={voiceOptions}
             onChange={(voice) => updateSettings({ tts_voice: voice })}
           />
           <RangeField

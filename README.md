@@ -15,6 +15,14 @@ pnpm install
 pnpm tauri dev
 ```
 
+To try the app without the speech models or a microphone, run it against a scripted engine:
+
+```sh
+pnpm tauri dev --features mock-engine
+```
+
+Logs are written to `%LOCALAPPDATA%\com.inforno.voice-to-tts\logs` (no speech logs).
+
 Checks:
 
 ```sh

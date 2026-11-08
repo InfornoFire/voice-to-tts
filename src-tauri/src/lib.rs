@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod commands;
 pub mod config;
+pub mod download;
 pub mod engine;
 pub mod error;
 pub mod events;
@@ -17,10 +18,11 @@ use tauri::Manager;
 use tauri_specta::{Builder, collect_commands, collect_events};
 
 use crate::config::ConfigStore;
+use crate::download::HttpFetch;
 use crate::engine::{Engine, EventSink, FanOutSink};
 use crate::events::TauriEventSink;
 use crate::hotkey::{GlobalHotkeys, Hotkeys};
-use crate::models::{HttpFetch, Manifest, ModelManager};
+use crate::models::{Manifest, ModelManager};
 use crate::state::AppState;
 
 /// The commands and events shared by the invoke handler and the TypeScript bindings.

@@ -4,7 +4,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use super::ModelFile;
+use super::RemoteFile;
 
 /// The lowercase hexadecimal text of a finished hash.
 pub fn hex_digest(hasher: Sha256) -> String {
@@ -16,12 +16,12 @@ pub fn hex_digest(hasher: Sha256) -> String {
 }
 
 /// Whether `file` exists at `path` with the expected size, without reading its contents.
-pub fn is_present(path: &Path, file: &ModelFile) -> bool {
+pub fn is_present(path: &Path, file: &RemoteFile) -> bool {
     fs::metadata(path).is_ok_and(|metadata| metadata.is_file() && metadata.len() == file.size)
 }
 
 /// Whether `file` exists at `path` with the expected size and contents.
-pub fn is_intact(path: &Path, file: &ModelFile) -> bool {
+pub fn is_intact(path: &Path, file: &RemoteFile) -> bool {
     is_present(path, file) && hash_file(path).is_ok_and(|hash| hash == file.sha256)
 }
 

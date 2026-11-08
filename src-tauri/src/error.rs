@@ -5,6 +5,7 @@ use specta::Type;
 
 use crate::audio::devices::AudioError;
 use crate::config::ConfigError;
+use crate::download::DownloadError;
 use crate::engine::{EngineError, SpeechError};
 use crate::hotkey::HotkeyError;
 use crate::models::ModelsError;
@@ -89,16 +90,16 @@ impl From<SpeechError> for UserFacingError {
 impl From<ModelsError> for UserFacingError {
     fn from(error: ModelsError) -> Self {
         let message = match error {
-            ModelsError::Download { .. } => {
+            ModelsError::Download(DownloadError::Download { .. }) => {
                 "The speech models could not be downloaded. Check your internet connection and try again."
             }
-            ModelsError::Integrity { .. } => {
+            ModelsError::Download(DownloadError::Integrity { .. }) => {
                 "A downloaded file was damaged, so it was not kept. Please try again."
             }
-            ModelsError::Write { .. } => {
+            ModelsError::Download(DownloadError::Write { .. }) => {
                 "The speech models could not be saved. Check that your disk has free space and try again."
             }
-            ModelsError::Cancelled => "The download was cancelled.",
+            ModelsError::Download(DownloadError::Cancelled) => "The download was cancelled.",
             ModelsError::Interrupted => "The download stopped unexpectedly. Please try again.",
         };
         Self {

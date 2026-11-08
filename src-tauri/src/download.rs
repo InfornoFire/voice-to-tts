@@ -1,20 +1,61 @@
+//! Downloading files over HTTPS and keeping only what matches its listing.
+
+#[cfg(test)]
+pub mod fakes;
+mod verify;
+
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-use super::verify::hex_digest;
-use super::{ModelFile, ModelsError};
+use verify::hex_digest;
+pub use verify::{is_intact, is_present};
 
 const BUFFER_SIZE: usize = 64 * 1024;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(30);
 const BODY_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
-/// Where the model files are downloaded from.
+/// A file to download, and what it must look like once it is here.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RemoteFile {
+    /// Location within the directory it is downloaded into, using `/` as the separator.
+    pub path: String,
+    /// Where to download it from, always over HTTPS.
+    pub url: String,
+    /// Lowercase hexadecimal SHA-256 of the file.
+    pub sha256: String,
+    /// Size of the file in bytes.
+    pub size: u64,
+}
+
+/// Failure to download a file.
+#[derive(Debug, thiserror::Error)]
+pub enum DownloadError {
+    #[error("could not download {path}")]
+    Download {
+        path: String,
+        #[source]
+        source: io::Error,
+    },
+    #[error("{path} does not have the expected contents")]
+    Integrity { path: String },
+    #[error("could not save {path}")]
+    Write {
+        path: String,
+        #[source]
+        source: io::Error,
+    },
+    #[error("the download was cancelled")]
+    Cancelled,
+}
+
+/// Where files are downloaded from.
 pub trait Fetch: Send + Sync {
     /// Starts downloading `url` and returns its body.
     fn open(&self, url: &str) -> io::Result<Box<dyn Read + Send>>;
@@ -59,10 +100,10 @@ impl Fetch for HttpFetch {
 pub fn fetch_file(
     fetch: &dyn Fetch,
     dir: &Path,
-    file: &ModelFile,
+    file: &RemoteFile,
     cancelled: &AtomicBool,
     on_bytes: &mut dyn FnMut(u64),
-) -> Result<(), ModelsError> {
+) -> Result<(), DownloadError> {
     let target = dir.join(&file.path);
     let partial = target.with_added_extension("part");
 
@@ -77,11 +118,11 @@ pub fn fetch_file(
 fn save(
     fetch: &dyn Fetch,
     partial: &Path,
-    file: &ModelFile,
+    file: &RemoteFile,
     cancelled: &AtomicBool,
     on_bytes: &mut dyn FnMut(u64),
-) -> Result<(), ModelsError> {
-    let download_error = |source| ModelsError::Download {
+) -> Result<(), DownloadError> {
+    let download_error = |source| DownloadError::Download {
         path: file.path.clone(),
         source,
     };
@@ -101,7 +142,7 @@ fn save(
     let mut received = 0;
     loop {
         if cancelled.load(Ordering::Relaxed) {
-            return Err(ModelsError::Cancelled);
+            return Err(DownloadError::Cancelled);
         }
         let count = body.read(&mut buffer).map_err(download_error)?;
         if count == 0 {
@@ -116,15 +157,15 @@ fn save(
     }
 
     if received != file.size || hex_digest(hasher) != file.sha256 {
-        return Err(ModelsError::Integrity {
+        return Err(DownloadError::Integrity {
             path: file.path.clone(),
         });
     }
     Ok(())
 }
 
-fn write_error(file: &ModelFile, source: io::Error) -> ModelsError {
-    ModelsError::Write {
+fn write_error(file: &RemoteFile, source: io::Error) -> DownloadError {
+    DownloadError::Write {
         path: file.path.clone(),
         source,
     }
@@ -133,7 +174,7 @@ fn write_error(file: &ModelFile, source: io::Error) -> ModelsError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::fakes::{FakeFetch, listed_file};
+    use crate::download::fakes::{FakeFetch, listed_file};
 
     #[test]
     fn cancelling_leaves_no_partial_file_behind() {
@@ -148,7 +189,7 @@ mod tests {
             cancelled.store(true, Ordering::Relaxed);
         });
 
-        assert!(matches!(result, Err(ModelsError::Cancelled)));
+        assert!(matches!(result, Err(DownloadError::Cancelled)));
         assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 0);
     }
 }

@@ -4,18 +4,7 @@ use std::path::{Component, Path};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-/// A model file to download into the models directory.
-#[derive(Debug, Clone, Deserialize)]
-pub struct ModelFile {
-    /// Location within the models directory, using `/` as the separator.
-    pub path: String,
-    /// Where to download it from, always over HTTPS.
-    pub url: String,
-    /// Lowercase hexadecimal SHA-256 of the file.
-    pub sha256: String,
-    /// Size of the file in bytes.
-    pub size: u64,
-}
+use crate::download::RemoteFile;
 
 /// A voice of the speech synthesis model.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
@@ -30,7 +19,8 @@ pub struct Voice {
 /// The files and voices the app needs.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Manifest {
-    pub files: Vec<ModelFile>,
+    /// Locations are relative to the models directory.
+    pub files: Vec<RemoteFile>,
     /// The first voice is the default.
     pub voices: Vec<Voice>,
 }

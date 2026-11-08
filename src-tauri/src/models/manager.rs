@@ -6,9 +6,8 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use specta::Type;
 
-use super::download::{Fetch, fetch_file};
-use super::verify::{is_intact, is_present};
-use super::{Manifest, ModelFile, ModelsError, Voice};
+use super::{Manifest, ModelsError, Voice};
+use crate::download::{DownloadError, Fetch, RemoteFile, fetch_file, is_intact, is_present};
 use crate::error::UserFacingError;
 
 /// How often the progress of a download is reported.
@@ -90,11 +89,11 @@ impl ModelManager {
         }
         let finished = match self.fetch_missing() {
             Ok(()) => ModelsState::Ready,
-            Err(ModelsError::Cancelled) => scan(&self.dir, &self.manifest),
+            Err(DownloadError::Cancelled) => scan(&self.dir, &self.manifest),
             Err(error) => {
                 log::error!("could not download the models: {error:?}");
                 ModelsState::Failed {
-                    error: error.into(),
+                    error: ModelsError::from(error).into(),
                 }
             }
         };
@@ -123,8 +122,8 @@ impl ModelManager {
         true
     }
 
-    fn fetch_missing(&self) -> Result<(), ModelsError> {
-        let missing: Vec<&ModelFile> = self
+    fn fetch_missing(&self) -> Result<(), DownloadError> {
+        let missing: Vec<&RemoteFile> = self
             .manifest
             .files
             .iter()
@@ -192,13 +191,14 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+    use crate::download::HttpFetch;
+    use crate::download::fakes::{FakeFetch, listed_file};
     use crate::error::ErrorCode;
-    use crate::models::HttpFetch;
-    use crate::models::fakes::{FakeFetch, listed_file, manifest};
+    use crate::models::fakes::manifest;
 
     fn manager_in(
         dir: &Path,
-        files: Vec<ModelFile>,
+        files: Vec<RemoteFile>,
         fetch: &FakeFetch,
     ) -> (ModelManager, Arc<Mutex<Vec<ModelsState>>>) {
         let states = Arc::new(Mutex::new(Vec::new()));

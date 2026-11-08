@@ -1,37 +1,20 @@
 //! The speech model files, and getting them onto this machine.
 
-mod download;
 #[cfg(test)]
 mod fakes;
 mod manager;
 mod manifest;
-mod verify;
 
-use std::io;
+use crate::download::DownloadError;
 
-pub use download::{Fetch, HttpFetch};
 pub use manager::{ModelManager, ModelsState, StateListener};
-pub use manifest::{Manifest, ManifestError, ModelFile, Voice};
+pub use manifest::{Manifest, ManifestError, Voice};
 
-/// Failure to download the model files.
+/// Failure to get the model files.
 #[derive(Debug, thiserror::Error)]
 pub enum ModelsError {
-    #[error("could not download {path}")]
-    Download {
-        path: String,
-        #[source]
-        source: io::Error,
-    },
-    #[error("{path} does not have the expected contents")]
-    Integrity { path: String },
-    #[error("could not save {path}")]
-    Write {
-        path: String,
-        #[source]
-        source: io::Error,
-    },
-    #[error("the download was cancelled")]
-    Cancelled,
+    #[error(transparent)]
+    Download(#[from] DownloadError),
     #[error("the download stopped unexpectedly")]
     Interrupted,
 }

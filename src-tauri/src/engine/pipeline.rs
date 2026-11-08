@@ -200,10 +200,11 @@ mod tests {
     use super::*;
     use crate::audio::devices::AudioError;
     use crate::audio::resample::resample_clip;
+    use crate::download::HttpFetch;
     use crate::engine::fakes::FakeResources;
     use crate::engine::{EngineEvent, Heard, INPUT_SAMPLE_RATE, LocalResources, Transcript};
     use crate::error::ErrorCode;
-    use crate::models::{HttpFetch, Manifest, ModelManager, ModelsState};
+    use crate::models::{Manifest, ModelManager, ModelsState};
 
     fn speech() -> Vec<f32> {
         vec![1.0; 10]

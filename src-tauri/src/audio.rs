@@ -2,8 +2,29 @@
 
 pub mod capture;
 pub mod devices;
+pub mod microphone;
 pub mod playback;
 pub mod resample;
+
+use devices::AudioError;
+
+/// A microphone delivering mono audio.
+pub trait AudioInput: Send {
+    /// Appends the samples captured since the previous call to `samples`.
+    fn read(&mut self, samples: &mut Vec<f32>);
+
+    /// Whether the microphone went away.
+    fn has_failed(&self) -> bool;
+}
+
+/// Where synthesized speech is played.
+pub trait AudioOutput: Send {
+    /// Queues mono `samples` recorded at `sample_rate`.
+    fn play(&mut self, samples: &[f32], sample_rate: u32) -> Result<(), AudioError>;
+
+    /// Whether everything queued has been handed to the device.
+    fn is_idle(&self) -> bool;
+}
 
 /// Whether a stream error means the stream is gone.
 fn is_fatal(error: &cpal::Error) -> bool {
@@ -23,6 +44,7 @@ mod tests {
     use cpal::traits::{DeviceTrait, HostTrait};
     use ringbuf::traits::Consumer;
 
+    use super::AudioOutput;
     use super::capture::Capture;
     use super::devices::is_cable;
     use super::playback::CableOutput;

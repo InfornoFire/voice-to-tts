@@ -9,8 +9,8 @@ use ringbuf::traits::{Consumer, Observer, Producer, Split};
 use ringbuf::{HeapCons, HeapProd, HeapRb};
 
 use super::devices::{AudioError, find_cable_output};
-use super::is_fatal;
 use super::resample::resample_clip;
+use super::{AudioOutput, is_fatal};
 
 const BUFFER_SECONDS: usize = 30;
 const FULL_BUFFER_POLL: Duration = Duration::from_millis(10);
@@ -54,9 +54,11 @@ impl CableOutput {
             failed,
         })
     }
+}
 
-    /// Queues mono `samples` recorded at `sample_rate`, waiting while the buffer is full.
-    pub fn play(&mut self, samples: &[f32], sample_rate: u32) -> Result<(), AudioError> {
+impl AudioOutput for CableOutput {
+    /// Waits while the buffer is full, and fails when the virtual microphone is lost.
+    fn play(&mut self, samples: &[f32], sample_rate: u32) -> Result<(), AudioError> {
         let converted = resample_clip(samples, sample_rate, self.sample_rate)?;
         let mut remaining = converted.as_slice();
         while !remaining.is_empty() {
@@ -71,8 +73,7 @@ impl CableOutput {
         Ok(())
     }
 
-    /// Whether everything queued has been handed to the device.
-    pub fn is_idle(&self) -> bool {
+    fn is_idle(&self) -> bool {
         self.producer.is_empty()
     }
 }

@@ -1,7 +1,15 @@
 //! The engine that turns speech from the microphone into speech on the virtual microphone.
 
 mod event;
+#[cfg(test)]
+mod fakes;
+mod listener;
+mod local;
+#[cfg(any(test, feature = "mock-engine"))]
 mod mock;
+mod pipeline;
+mod resources;
+mod session;
 mod sherpa;
 mod state;
 mod stt;
@@ -9,7 +17,12 @@ mod tts;
 mod vad;
 
 pub use event::{EngineEvent, EventSink, FanOutSink, Transcript};
+pub use listener::{Heard, Listener};
+pub use local::LocalResources;
+#[cfg(any(test, feature = "mock-engine"))]
 pub use mock::MockEngine;
+pub use pipeline::PipelineEngine;
+pub use resources::{Models, Resources};
 pub use sherpa::{SherpaTts, SileroVad, ZipformerStt};
 pub use state::{EngineState, StateMachine};
 pub use stt::Stt;
@@ -17,6 +30,9 @@ pub use tts::Tts;
 pub use vad::Vad;
 
 use crate::audio::devices::AudioError;
+
+/// The sample rate of the audio given to a [`Vad`] and an [`Stt`].
+pub const INPUT_SAMPLE_RATE: u32 = 16_000;
 
 /// Failure to carry out a request made to the engine.
 #[derive(Debug, thiserror::Error)]

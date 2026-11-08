@@ -12,9 +12,6 @@ pub use stt::ZipformerStt;
 pub use tts::SherpaTts;
 pub use vad::SileroVad;
 
-/// The sample rate of the input audio.
-const INPUT_SAMPLE_RATE: u32 = 16_000;
-
 /// The text of `path`
 fn path_text(path: &Path, model: &'static str) -> Result<String, SpeechError> {
     path.to_str()

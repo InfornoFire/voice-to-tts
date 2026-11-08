@@ -2,8 +2,8 @@ use std::path::Path;
 
 use sherpa_onnx::{SileroVadModelConfig, VadModelConfig, VoiceActivityDetector};
 
-use super::{INPUT_SAMPLE_RATE, path_text};
-use crate::engine::{SpeechError, Vad};
+use super::path_text;
+use crate::engine::{INPUT_SAMPLE_RATE, SpeechError, Vad};
 
 const MODEL_KIND: &str = "voice detection";
 const BUFFER_SECONDS: f32 = 30.0;

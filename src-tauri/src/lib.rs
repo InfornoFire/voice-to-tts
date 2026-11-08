@@ -15,9 +15,8 @@ use std::sync::Arc;
 use tauri::Manager;
 use tauri_specta::{Builder, collect_commands, collect_events};
 
-use crate::audio::devices::check_cable;
 use crate::config::ConfigStore;
-use crate::engine::{FanOutSink, MockEngine};
+use crate::engine::{Engine, EventSink, FanOutSink};
 use crate::events::TauriEventSink;
 use crate::hotkey::{GlobalHotkeys, Hotkeys};
 use crate::state::AppState;
@@ -53,6 +52,35 @@ fn export_bindings<R: tauri::Runtime>(builder: &Builder<R>) {
         .expect("failed to export the TypeScript bindings");
 }
 
+/// Creates the engine that runs the speech models on this machine.
+#[cfg(not(feature = "mock-engine"))]
+fn create_engine(
+    app: &tauri::App,
+    events: Arc<dyn EventSink>,
+    config: &Arc<ConfigStore>,
+) -> tauri::Result<Box<dyn Engine>> {
+    let models_dir = app.path().app_local_data_dir()?.join("models");
+    let config = Arc::clone(config);
+    Ok(Box::new(engine::PipelineEngine::new(
+        events,
+        engine::LocalResources::new(models_dir),
+        move || config.get(),
+    )))
+}
+
+/// Creates the engine that replays a script, without audio devices or models.
+#[cfg(feature = "mock-engine")]
+fn create_engine(
+    _app: &tauri::App,
+    events: Arc<dyn EventSink>,
+    _config: &Arc<ConfigStore>,
+) -> tauri::Result<Box<dyn Engine>> {
+    Ok(Box::new(engine::MockEngine::new(
+        events,
+        audio::devices::check_cable,
+    )))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     platform::lower_priority();
@@ -66,6 +94,11 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             shell::show_main_window(app);
         }))
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(builder.invoke_handler())
@@ -74,7 +107,9 @@ pub fn run() {
         .setup(move |app| {
             builder.mount_events(app);
 
-            let config = ConfigStore::load(app.path().app_config_dir()?.join("config.json"));
+            let config = Arc::new(ConfigStore::load(
+                app.path().app_config_dir()?.join("config.json"),
+            ));
             let hotkey = config.get().hotkey;
             let events = Arc::new(FanOutSink::new(vec![
                 Arc::new(TauriEventSink::new(app.handle().clone())),
@@ -86,8 +121,8 @@ pub fn run() {
             let _ = hotkeys.replace("", &hotkey);
 
             app.manage(AppState {
+                engine: create_engine(app, events, &config)?,
                 config,
-                engine: Box::new(MockEngine::new(events, check_cable)),
                 hotkeys: Box::new(hotkeys),
             });
             Ok(())

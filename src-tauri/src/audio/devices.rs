@@ -19,6 +19,10 @@ pub enum AudioError {
     OpenMic(#[source] cpal::Error),
     #[error("could not open the virtual microphone")]
     OpenCable(#[source] cpal::Error),
+    #[error("no usable audio output was found")]
+    OutputMissing,
+    #[error("could not open the audio output")]
+    OpenOutput(#[source] cpal::Error),
     #[error("could not set up audio conversion")]
     Resample(#[from] rubato::ResamplerConstructionError),
 }
@@ -30,6 +34,8 @@ pub struct InputDevice {
     pub id: String,
     pub name: String,
     pub is_default: bool,
+    /// Whether this is the output of the virtual microphone.
+    pub is_cable: bool,
 }
 
 /// A device as listed by the audio host.
@@ -47,7 +53,7 @@ impl Endpoint {
     }
 }
 
-/// Lists the microphones that can be captured, without the virtual microphone's own output.
+/// Lists the microphones that can be captured, including the virtual microphone's own output.
 pub fn list_input_devices() -> Result<Vec<InputDevice>, AudioError> {
     let host = cpal::default_host();
     let default_id = host
@@ -72,28 +78,49 @@ pub fn find_cable_output() -> Result<Device, AudioError> {
         .ok_or(AudioError::CableMissing)
 }
 
+/// Finds the output to play speech through when the virtual microphone is the one listened to.
+///
+/// This is the system default output, or the first other one when that is the virtual
+/// microphone, which is never returned.
+pub fn find_default_output() -> Result<Device, AudioError> {
+    let host = cpal::default_host();
+    let is_not_cable = |device: &Device| device_matches(device, |name| !is_cable(name));
+
+    host.default_output_device()
+        .and_then(|device| host.device_by_id(&device.id().ok()?))
+        .filter(is_not_cable)
+        .or_else(|| host.output_devices().ok()?.find(is_not_cable))
+        .ok_or(AudioError::OutputMissing)
+}
+
 /// Finds the microphone to capture from, where `None` follows the system default.
 ///
-/// The virtual microphone is never returned.
+/// The virtual microphone's own output is only returned when `device_id` names it.
 pub fn find_input_device(device_id: Option<&str>) -> Result<Device, AudioError> {
     let host = cpal::default_host();
-    let is_microphone =
-        |device: &Device| device.supports_input() && device_matches(device, |name| !is_cable(name));
 
     let device = match device_id {
         Some(device_id) => {
             let device_id: DeviceId = device_id.parse().map_err(|_| AudioError::MicUnavailable)?;
             host.device_by_id(&device_id)
+                .filter(|device| device.supports_input())
         }
-        None => host
-            .default_input_device()
-            .and_then(|device| host.device_by_id(&device.id().ok()?))
-            .filter(is_microphone)
-            .or_else(|| host.input_devices().ok()?.find(is_microphone)),
+        None => {
+            let is_microphone = |device: &Device| {
+                device.supports_input() && device_matches(device, |name| !is_cable(name))
+            };
+            host.default_input_device()
+                .and_then(|device| host.device_by_id(&device.id().ok()?))
+                .filter(is_microphone)
+                .or_else(|| host.input_devices().ok()?.find(is_microphone))
+        }
     };
-    device
-        .filter(is_microphone)
-        .ok_or(AudioError::MicUnavailable)
+    device.ok_or(AudioError::MicUnavailable)
+}
+
+/// Whether the microphone found for `device_id` is the virtual microphone's own output.
+pub fn is_virtual_microphone(device_id: Option<&str>) -> bool {
+    find_input_device(device_id).is_ok_and(|device| device_matches(&device, is_cable))
 }
 
 /// Whether the device has a readable name that satisfies `predicate`.
@@ -113,9 +140,9 @@ fn microphones(
 ) -> Vec<InputDevice> {
     endpoints
         .into_iter()
-        .filter(|endpoint| !is_cable(&endpoint.name))
         .map(|endpoint| InputDevice {
             is_default: default_id == Some(endpoint.id.as_str()),
+            is_cable: is_cable(&endpoint.name),
             id: endpoint.id,
             name: endpoint.name,
         })
@@ -134,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn microphones_exclude_the_cable_and_mark_the_default() {
+    fn microphones_flag_the_cable_in_any_case_and_mark_the_default() {
         let endpoints = [
             endpoint("first", "Microphone A (Adapter A)"),
             endpoint("cable", &format!("Renamed ({CABLE_ADAPTER_NAME})")),
@@ -146,8 +173,16 @@ mod tests {
 
         let listed: Vec<_> = devices
             .iter()
-            .map(|device| (device.id.as_str(), device.is_default))
+            .map(|device| (device.id.as_str(), device.is_cable, device.is_default))
             .collect();
-        assert_eq!(listed, [("first", false), ("second", true)]);
+        assert_eq!(
+            listed,
+            [
+                ("first", false, false),
+                ("cable", true, false),
+                ("uppercase", true, false),
+                ("second", false, true),
+            ]
+        );
     }
 }

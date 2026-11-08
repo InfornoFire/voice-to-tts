@@ -8,8 +8,13 @@ interface MicPickerProps {
   onSelect: (deviceId: string | null) => void;
 }
 
+const NO_MICROPHONE_HINT = "No microphone found. Plug one in and it will show up here.";
+const CABLE_HINT =
+  "VB-CABLE is the microphone, so the voice plays through your default audio output instead of back into VB-CABLE.";
+
 function MicPicker({ devices, selectedId, onSelect }: MicPickerProps) {
-  const isDisconnected = selectedId !== null && !devices.some((device) => device.id === selectedId);
+  const selected = devices.find((device) => device.id === selectedId);
+  const isDisconnected = selectedId !== null && selected === undefined;
   const options = [
     { value: "", label: "System default" },
     ...devices.map((device) => ({ value: device.id, label: device.name })),
@@ -21,11 +26,7 @@ function MicPicker({ devices, selectedId, onSelect }: MicPickerProps) {
       label="Microphone"
       value={selectedId ?? ""}
       options={options}
-      hint={
-        devices.length === 0
-          ? "No microphone found. Plug one in and it will show up here."
-          : undefined
-      }
+      hint={devices.length === 0 ? NO_MICROPHONE_HINT : selected?.is_cable ? CABLE_HINT : undefined}
       onChange={(value) => onSelect(value || null)}
     />
   );

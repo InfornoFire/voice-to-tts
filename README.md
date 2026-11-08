@@ -10,7 +10,9 @@ The app speaks into a virtual microphone. It is VB-CABLE, from [www.vb-cable.com
 2. Right-click `VBCABLE_Setup_x64.exe`, choose Run as administrator, and click Install Driver.
 3. Restart your computer.
 
-Then pick `CABLE Output` as the microphone in your chat app (Discord, Zoom, Teams and so on). voice-to-tts only plays into `CABLE Input` and never into your speakers.
+Then pick `CABLE Output` as the microphone in your chat app (Discord, Zoom, Teams and so on). voice-to-tts plays into `CABLE Input` and never into your normal audio output.
+
+You can also pick `CABLE Output` as the microphone of voice-to-tts itself, to speak what is sent into `CABLE Input`. It then plays the voice through your default audio output instead, so it does not hear itself.
 
 ## Speech models
 

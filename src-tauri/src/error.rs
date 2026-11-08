@@ -141,6 +141,11 @@ impl From<AudioError> for UserFacingError {
                 message: "Your microphone could not be used. Check that it is plugged in, or pick another one.".to_owned(),
                 action: Some(ErrorAction::PickMic),
             },
+            AudioError::OutputMissing | AudioError::OpenOutput(_) => Self {
+                code: ErrorCode::AudioUnavailable,
+                message: "No audio output could be used to play the voice. Check that your speakers or headphones are connected, then try again.".to_owned(),
+                action: Some(ErrorAction::Retry),
+            },
             AudioError::Host(_) | AudioError::Resample(_) => Self {
                 code: ErrorCode::AudioUnavailable,
                 message: "Your audio devices could not be read. Please try again.".to_owned(),

@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
 use super::{
-    INPUT_SAMPLE_RATE, Models, Resources, SherpaTts, SileroVad, SpeechError, ZipformerFiles,
-    ZipformerStt,
+    INPUT_SAMPLE_RATE, Models, OutputTarget, Resources, SherpaTts, SileroVad, SpeechError,
+    ZipformerFiles, ZipformerStt,
 };
-use crate::audio::devices::{AudioError, check_cable};
+use crate::audio::devices::{AudioError, check_cable, is_virtual_microphone};
 use crate::audio::microphone::Microphone;
-use crate::audio::playback::CableOutput;
+use crate::audio::playback::Playback;
 use crate::audio::{AudioInput, AudioOutput};
 use crate::config::Config;
 use crate::models::Voice;
@@ -39,12 +39,20 @@ impl Resources for LocalResources {
         check_cable()
     }
 
+    fn is_virtual_microphone(&self, device_id: Option<&str>) -> bool {
+        is_virtual_microphone(device_id)
+    }
+
     fn open_input(&self, device_id: Option<&str>) -> Result<Box<dyn AudioInput>, AudioError> {
         Ok(Box::new(Microphone::open(device_id, INPUT_SAMPLE_RATE)?))
     }
 
-    fn open_output(&self) -> Result<Box<dyn AudioOutput>, AudioError> {
-        Ok(Box::new(CableOutput::open()?))
+    fn open_output(&self, target: OutputTarget) -> Result<Box<dyn AudioOutput>, AudioError> {
+        let playback = match target {
+            OutputTarget::VirtualMicrophone => Playback::virtual_microphone()?,
+            OutputTarget::DefaultOutput => Playback::default_output()?,
+        };
+        Ok(Box::new(playback))
     }
 
     fn load_models(&self, config: &Config) -> Result<Models, SpeechError> {

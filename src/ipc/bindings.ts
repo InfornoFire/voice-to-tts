@@ -82,6 +82,8 @@ export type InputDevice = {
 	id: string,
 	name: string,
 	is_default: boolean,
+	/**  Whether this is the output of the virtual microphone. */
+	is_cable: boolean,
 };
 
 /**  Whether the model files are ready to use. */

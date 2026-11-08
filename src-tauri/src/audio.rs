@@ -47,7 +47,7 @@ mod tests {
     use super::AudioOutput;
     use super::capture::Capture;
     use super::devices::is_cable;
-    use super::playback::CableOutput;
+    use super::playback::Playback;
 
     #[test]
     #[ignore = "needs VB-CABLE and plays a tone into it"]
@@ -58,7 +58,7 @@ mod tests {
             .find(|device| device.description().is_ok_and(|d| is_cable(d.name())))
             .expect("the virtual microphone should be installed");
         let (capture, mut captured) = Capture::start(&cable_output).unwrap();
-        let mut output = CableOutput::open().unwrap();
+        let mut output = Playback::virtual_microphone().unwrap();
 
         let tone: Vec<f32> = (0..22_050)
             .map(|index| 0.5 * (TAU * 440.0 * index as f32 / 22_050.0).sin())
@@ -74,5 +74,27 @@ mod tests {
             .fold(0.0_f32, |peak, sample| peak.max(sample.abs()));
         assert!(!capture.has_failed());
         assert!(peak > 0.3, "peak was {peak}");
+    }
+
+    #[test]
+    #[ignore = "needs VB-CABLE and another audio output, and plays silence through it"]
+    fn listening_to_the_cable_plays_through_an_output_other_than_the_cable() {
+        use super::devices::{find_default_output, is_virtual_microphone, list_input_devices};
+
+        let cable_output = list_input_devices()
+            .unwrap()
+            .into_iter()
+            .find(|device| device.is_cable)
+            .expect("the virtual microphone should be installed");
+        assert!(is_virtual_microphone(Some(&cable_output.id)));
+
+        let output = find_default_output().unwrap();
+        assert!(output.description().is_ok_and(|d| !is_cable(d.name())));
+
+        let mut playback = Playback::default_output().unwrap();
+        playback.play(&[0.0; 2_205], 22_050).unwrap();
+        while !playback.is_idle() {
+            thread::sleep(Duration::from_millis(20));
+        }
     }
 }

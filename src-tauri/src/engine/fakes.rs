@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use super::{INPUT_SAMPLE_RATE, Models, Resources, SpeechError, Stt, Tts, Vad};
+use super::{INPUT_SAMPLE_RATE, Models, OutputTarget, Resources, SpeechError, Stt, Tts, Vad};
 use crate::audio::devices::AudioError;
 use crate::audio::{AudioInput, AudioOutput};
 use crate::config::Config;
@@ -63,11 +63,15 @@ pub struct FakeResources {
     pub cable_installed: bool,
     pub models_installed: bool,
     pub microphone_installed: bool,
+    /// Whether the microphone is the output of the virtual microphone.
+    pub microphone_is_virtual: bool,
     /// The audio the microphone will hear, one entry for each time it is read.
     pub heard: Arc<Mutex<VecDeque<Vec<f32>>>>,
     pub microphone_lost: Arc<AtomicBool>,
     pub microphone_open: Arc<AtomicBool>,
     pub played: Arc<Mutex<Vec<Vec<f32>>>>,
+    /// Where speech was asked to be played, one entry for each output that was opened.
+    pub outputs: Arc<Mutex<Vec<OutputTarget>>>,
 }
 
 impl Default for FakeResources {
@@ -76,10 +80,12 @@ impl Default for FakeResources {
             cable_installed: true,
             models_installed: true,
             microphone_installed: true,
+            microphone_is_virtual: false,
             heard: Arc::default(),
             microphone_lost: Arc::default(),
             microphone_open: Arc::default(),
             played: Arc::default(),
+            outputs: Arc::default(),
         }
     }
 }
@@ -91,6 +97,10 @@ impl Resources for FakeResources {
         } else {
             Err(AudioError::CableMissing)
         }
+    }
+
+    fn is_virtual_microphone(&self, _device_id: Option<&str>) -> bool {
+        self.microphone_is_virtual
     }
 
     fn open_input(&self, _device_id: Option<&str>) -> Result<Box<dyn AudioInput>, AudioError> {
@@ -105,8 +115,11 @@ impl Resources for FakeResources {
         }))
     }
 
-    fn open_output(&self) -> Result<Box<dyn AudioOutput>, AudioError> {
-        self.check_cable()?;
+    fn open_output(&self, target: OutputTarget) -> Result<Box<dyn AudioOutput>, AudioError> {
+        if target == OutputTarget::VirtualMicrophone {
+            self.check_cable()?;
+        }
+        self.outputs.lock().unwrap().push(target);
         Ok(Box::new(FakeOutput {
             played: Arc::clone(&self.played),
         }))

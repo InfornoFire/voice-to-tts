@@ -22,7 +22,7 @@ pub use local::LocalResources;
 #[cfg(any(test, feature = "mock-engine"))]
 pub use mock::MockEngine;
 pub use pipeline::PipelineEngine;
-pub use resources::{Models, Resources};
+pub use resources::{Models, OutputTarget, Resources};
 pub use sherpa::{SherpaTts, SileroVad, ZipformerFiles, ZipformerStt};
 pub use state::{EngineState, StateMachine};
 pub use stt::Stt;

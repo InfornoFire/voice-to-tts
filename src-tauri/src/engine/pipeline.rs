@@ -6,7 +6,9 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use super::session::{Parts, Session, Settings};
-use super::{Engine, EngineError, EngineState, EventSink, Listener, Resources, StateMachine};
+use super::{
+    Engine, EngineError, EngineState, EventSink, Listener, OutputTarget, Resources, StateMachine,
+};
 use crate::config::Config;
 
 enum Command {
@@ -21,7 +23,8 @@ enum Command {
     Shutdown,
 }
 
-/// An [`Engine`] that listens to the microphone and speaks through the virtual microphone.
+/// An [`Engine`] that listens to the microphone and speaks through the virtual microphone, or
+/// through the default audio output when the virtual microphone is what it listens to.
 ///
 /// All state changes beyond speaking happen on one worker thread, which sleeps while the engine is
 /// off. The microphone and the models are only held while the engine is on.
@@ -171,7 +174,16 @@ impl Worker {
     /// The microphone is opened last, so it does not collect audio while the models load.
     fn load(&self, id: u32) -> Result<Parts, EngineError> {
         let config = (self.settings)();
-        let output = self.resources.open_output()?;
+        // Speech played into the virtual microphone while listening to it would be heard again.
+        let target = if self
+            .resources
+            .is_virtual_microphone(config.input_device.as_deref())
+        {
+            OutputTarget::DefaultOutput
+        } else {
+            OutputTarget::VirtualMicrophone
+        };
+        let output = self.resources.open_output(target)?;
         let models = self.resources.load_models(&config)?;
         let input = self.resources.open_input(config.input_device.as_deref())?;
 
@@ -284,6 +296,33 @@ mod tests {
         engine.set_enabled(false).unwrap();
         expect_events(&events, [state_changed(EngineState::Off)]);
         assert!(!resources.microphone_open.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn speech_is_never_played_into_the_virtual_microphone_that_is_listened_to() {
+        let cases = [
+            (false, OutputTarget::VirtualMicrophone),
+            (true, OutputTarget::DefaultOutput),
+        ];
+
+        for (microphone_is_virtual, expected) in cases {
+            let resources = FakeResources {
+                microphone_is_virtual,
+                ..FakeResources::default()
+            };
+            let (engine, events) = engine_with(&resources);
+
+            engine.set_enabled(true).unwrap();
+
+            expect_events(
+                &events,
+                [
+                    state_changed(EngineState::Loading),
+                    state_changed(EngineState::Listening),
+                ],
+            );
+            assert_eq!(*resources.outputs.lock().unwrap(), [expected]);
+        }
     }
 
     #[test]

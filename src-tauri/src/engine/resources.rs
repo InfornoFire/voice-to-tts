@@ -10,18 +10,30 @@ pub struct Models {
     pub tts: Box<dyn Tts>,
 }
 
+/// Where speech is played.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OutputTarget {
+    /// The virtual microphone, so a chat app hears it.
+    VirtualMicrophone,
+    /// The default audio output, which is never the virtual microphone.
+    DefaultOutput,
+}
+
 /// The audio devices and models a running engine uses.
 pub trait Resources: Send + Sync {
     /// Succeeds when the virtual microphone is installed.
     fn check_cable(&self) -> Result<(), AudioError>;
+
+    /// Whether the microphone with `device_id`, or the system default when `None`, is the output of
+    /// the virtual microphone.
+    fn is_virtual_microphone(&self, device_id: Option<&str>) -> bool;
 
     /// Opens the microphone with `device_id`, or the system default when `None`.
     ///
     /// The audio is mono at [`INPUT_SAMPLE_RATE`](super::INPUT_SAMPLE_RATE).
     fn open_input(&self, device_id: Option<&str>) -> Result<Box<dyn AudioInput>, AudioError>;
 
-    /// Opens the virtual microphone, the only place speech is played.
-    fn open_output(&self) -> Result<Box<dyn AudioOutput>, AudioError>;
+    fn open_output(&self, target: OutputTarget) -> Result<Box<dyn AudioOutput>, AudioError>;
 
     fn load_models(&self, config: &Config) -> Result<Models, SpeechError>;
 }

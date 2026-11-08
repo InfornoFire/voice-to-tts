@@ -8,28 +8,47 @@ use cpal::{Device, FromSample, SampleFormat, SizedSample, Stream, StreamConfig};
 use ringbuf::traits::{Consumer, Observer, Producer, Split};
 use ringbuf::{HeapCons, HeapProd, HeapRb};
 
-use super::devices::{AudioError, find_cable_output};
+use super::devices::{AudioError, find_cable_output, find_default_output};
 use super::resample::resample_clip;
 use super::{AudioOutput, is_fatal};
 
 const BUFFER_SECONDS: usize = 30;
 const FULL_BUFFER_POLL: Duration = Duration::from_millis(10);
 
-/// A running output stream to the virtual microphone. Dropping it stops the stream.
-pub struct CableOutput {
+/// A running output stream. Dropping it stops the stream.
+pub struct Playback {
     _stream: Stream,
     producer: HeapProd<f32>,
     sample_rate: u32,
     failed: Arc<AtomicBool>,
+    lost: fn() -> AudioError,
 }
 
-impl CableOutput {
-    /// Opens the virtual microphone, the only output stream the app creates.
-    pub fn open() -> Result<Self, AudioError> {
-        let device = find_cable_output()?;
-        let supported = device
-            .default_output_config()
-            .map_err(AudioError::OpenCable)?;
+impl Playback {
+    /// Opens the virtual microphone, where speech is played for a chat app to hear.
+    pub fn virtual_microphone() -> Result<Self, AudioError> {
+        Self::open(find_cable_output()?, AudioError::OpenCable, || {
+            AudioError::CableMissing
+        })
+    }
+
+    /// Opens the default audio output, for when the virtual microphone is what is listened to.
+    ///
+    /// Speech played into the virtual microphone would then be heard by the app again.
+    pub fn default_output() -> Result<Self, AudioError> {
+        Self::open(find_default_output()?, AudioError::OpenOutput, || {
+            AudioError::OutputMissing
+        })
+    }
+
+    /// Opens `device`, reporting a failure to open it with `open_error` and a lost device with
+    /// `lost`.
+    fn open(
+        device: Device,
+        open_error: fn(cpal::Error) -> AudioError,
+        lost: fn() -> AudioError,
+    ) -> Result<Self, AudioError> {
+        let supported = device.default_output_config().map_err(open_error)?;
         let config = supported.config();
         let capacity = config.sample_rate as usize * BUFFER_SECONDS;
         let (producer, consumer) = HeapRb::<f32>::new(capacity).split();
@@ -44,26 +63,27 @@ impl CableOutput {
                 "unsupported sample format",
             )),
         }
-        .map_err(AudioError::OpenCable)?;
-        stream.play().map_err(AudioError::OpenCable)?;
+        .map_err(open_error)?;
+        stream.play().map_err(open_error)?;
 
         Ok(Self {
             _stream: stream,
             producer,
             sample_rate: config.sample_rate,
             failed,
+            lost,
         })
     }
 }
 
-impl AudioOutput for CableOutput {
-    /// Waits while the buffer is full, and fails when the virtual microphone is lost.
+impl AudioOutput for Playback {
+    /// Waits while the buffer is full, and fails when the output is lost.
     fn play(&mut self, samples: &[f32], sample_rate: u32) -> Result<(), AudioError> {
         let converted = resample_clip(samples, sample_rate, self.sample_rate)?;
         let mut remaining = converted.as_slice();
         while !remaining.is_empty() {
             if self.failed.load(Ordering::Relaxed) {
-                return Err(AudioError::CableMissing);
+                return Err((self.lost)());
             }
             remaining = &remaining[self.producer.push_slice(remaining)..];
             if !remaining.is_empty() {

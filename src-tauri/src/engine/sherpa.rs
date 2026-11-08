@@ -1,5 +1,6 @@
 //! Speech models run by sherpa-onnx.
 
+mod lexicon;
 mod stt;
 mod tts;
 mod vad;

@@ -11,6 +11,7 @@ mod pipeline;
 mod resources;
 mod session;
 mod sherpa;
+mod speakable;
 mod state;
 mod stt;
 mod tts;

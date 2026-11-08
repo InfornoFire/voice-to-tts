@@ -5,15 +5,21 @@ use sherpa_onnx::{
     OfflineTtsKokoroModelConfig, OfflineTtsModelConfig,
 };
 
+use super::lexicon::Lexicon;
 use super::path_text;
+use crate::engine::speakable::speakable;
 use crate::engine::{SpeechError, Tts};
 use crate::models::Voice;
 
 const MODEL_KIND: &str = "speech synthesis";
 
 /// Speech synthesis with a model that reads text through an English lexicon.
+///
+/// Words the lexicon lacks are spelled out or read as the words they are made of, because the
+/// model would skip them.
 pub struct SherpaTts {
     tts: OfflineTts,
+    lexicon: Lexicon,
     voices: Vec<Voice>,
 }
 
@@ -39,7 +45,7 @@ impl SherpaTts {
             num_threads: i32::from(threads),
             ..Default::default()
         };
-        Self::create(model, voices)
+        Self::create(model, lexicon, voices)
     }
 
     /// Loads the Kitten model in `model_dir`, using at most `threads` threads.
@@ -63,16 +69,25 @@ impl SherpaTts {
             num_threads: i32::from(threads),
             ..Default::default()
         };
-        Self::create(model, voices)
+        Self::create(model, lexicon, voices)
     }
 
-    fn create(model: OfflineTtsModelConfig, voices: Vec<Voice>) -> Result<Self, SpeechError> {
+    fn create(
+        model: OfflineTtsModelConfig,
+        lexicon: &Path,
+        voices: Vec<Voice>,
+    ) -> Result<Self, SpeechError> {
         let config = OfflineTtsConfig {
             model,
             ..Default::default()
         };
         let tts = OfflineTts::create(&config).ok_or(SpeechError::Load(MODEL_KIND))?;
-        Ok(Self { tts, voices })
+        let lexicon = Lexicon::load(lexicon, MODEL_KIND)?;
+        Ok(Self {
+            tts,
+            lexicon,
+            voices,
+        })
     }
 
     fn speaker(&self, voice: &str) -> i32 {
@@ -90,7 +105,7 @@ impl Tts for SherpaTts {
 
     fn synthesize(&mut self, text: &str, voice: &str, speed: f32) -> Result<Vec<f32>, SpeechError> {
         // C strings cannot hold a null character.
-        let text = text.replace('\0', "");
+        let text = speakable(&text.replace('\0', ""), |word| self.lexicon.contains(word));
         if text.trim().is_empty() {
             return Ok(Vec::new());
         }

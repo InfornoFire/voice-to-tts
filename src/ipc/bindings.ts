@@ -69,7 +69,7 @@ export type EngineState = { status: "off" } |
 { status: "speaking" } | { status: "error"; error: UserFacingError };
 
 /**  The single recovery button the UI offers next to an error. */
-export type ErrorAction = "repair" | "restart" | "pick_mic" | "retry";
+export type ErrorAction = "repair" | "install_cable" | "restart" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
 export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "models_download_failed" | "speech_failed" | "hotkey_unavailable";

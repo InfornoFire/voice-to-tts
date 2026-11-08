@@ -1,5 +1,6 @@
 import { useEffect } from "preact/hooks";
 
+import About from "../components/About";
 import CheckboxField from "../components/CheckboxField";
 import ErrorBanner from "../components/ErrorBanner";
 import HotkeyField from "../components/HotkeyField";
@@ -91,6 +92,7 @@ function SettingsView() {
             hint="Open in the background when the app starts."
             onChange={(startMinimized) => updateSettings({ start_minimized: startMinimized })}
           />
+          <About />
         </div>
       )}
     </main>

@@ -4,6 +4,7 @@ import "./ErrorBanner.css";
 
 const ACTION_LABELS: Record<ErrorAction, string> = {
   repair: "Repair",
+  install_cable: "Get VB-CABLE",
   restart: "Restart",
   pick_mic: "Pick a microphone",
   retry: "Try again",

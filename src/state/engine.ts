@@ -10,6 +10,7 @@ import {
   toUserFacingError,
   unwrap,
 } from "../ipc";
+import { VB_CABLE_URL, openLink } from "../lib/links";
 import { cableError, checkCable } from "./devices";
 import { downloadModels } from "./models";
 import { navigate } from "./view";
@@ -70,12 +71,14 @@ export async function speakText(text: string): Promise<boolean> {
   }
 }
 
-/** Does what the button on an error offers. Restart and repairing the cable have nothing to run yet. */
+/** Does what the button on an error offers. Restart has nothing to run yet. */
 export function runErrorAction(action: ErrorAction, code: ErrorCode) {
   if (action === "retry") {
     void retry();
   } else if (action === "pick_mic") {
     navigate("settings");
+  } else if (action === "install_cable") {
+    openLink(VB_CABLE_URL);
   } else if (action === "repair" && code === "models_unavailable") {
     void repairModels();
   }

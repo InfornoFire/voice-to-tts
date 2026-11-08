@@ -4,7 +4,13 @@ A simple Windows application to convert speech audio from a microphone (speech-t
 
 ## Virtual microphone
 
-The virtual microphone is provided by VB-CABLE from [www.vb-cable.com](https://www.vb-cable.com). VB-CABLE is donationware and all contributions are welcome.
+The app speaks into a virtual microphone. It is VB-CABLE, from [www.vb-cable.com](https://www.vb-cable.com).
+
+1. Download the VB-CABLE driver pack from [www.vb-cable.com](https://www.vb-cable.com) and unzip it.
+2. Right-click `VBCABLE_Setup_x64.exe`, choose Run as administrator, and click Install Driver.
+3. Restart your computer.
+
+Then pick `CABLE Output` as the microphone in your chat app (Discord, Zoom, Teams and so on). voice-to-tts only plays into `CABLE Input` and never into your speakers.
 
 ## Speech models
 

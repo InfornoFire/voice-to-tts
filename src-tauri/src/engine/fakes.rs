@@ -30,12 +30,12 @@ pub struct RecordingStt {
 impl Stt for RecordingStt {
     fn accept(&mut self, samples: &[f32]) -> String {
         self.heard.lock().unwrap().extend(samples);
-        "HELLO".to_owned()
+        "Hello".to_owned()
     }
 
     fn finish(&mut self) -> String {
         self.heard.lock().unwrap().clear();
-        "HELLO THERE".to_owned()
+        " Hello  world".to_owned()
     }
 }
 

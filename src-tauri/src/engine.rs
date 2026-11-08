@@ -23,7 +23,7 @@ pub use local::LocalResources;
 pub use mock::MockEngine;
 pub use pipeline::PipelineEngine;
 pub use resources::{Models, Resources};
-pub use sherpa::{SherpaTts, SileroVad, ZipformerStt};
+pub use sherpa::{SherpaTts, SileroVad, ZipformerFiles, ZipformerStt};
 pub use state::{EngineState, StateMachine};
 pub use stt::Stt;
 pub use tts::Tts;

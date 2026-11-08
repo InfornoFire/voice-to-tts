@@ -72,31 +72,9 @@ impl Listener {
     }
 }
 
-/// Turns recognized text, which has no case or punctuation, into a plain sentence.
+/// Trims the text and collapses the spaces between its words.
 fn tidy(text: &str) -> String {
-    let mut words: Vec<String> = text
-        .split_whitespace()
-        .map(|word| {
-            let word = word.to_lowercase();
-            if word == "i" || word.starts_with("i'") {
-                capitalize(&word)
-            } else {
-                word
-            }
-        })
-        .collect();
-    if let Some(first) = words.first_mut() {
-        *first = capitalize(first);
-    }
-    words.join(" ")
-}
-
-fn capitalize(word: &str) -> String {
-    let mut letters = word.chars();
-    letters
-        .next()
-        .map(|first| first.to_uppercase().chain(letters).collect())
-        .unwrap_or_default()
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 #[cfg(test)]
@@ -141,7 +119,7 @@ mod tests {
             .collect();
 
         let partial = Heard::Partial("Hello".to_owned());
-        let last = Heard::Final("Hello there".to_owned());
+        let last = Heard::Final("Hello world".to_owned());
         assert_eq!(results, [None, Some(partial), None, Some(last), None]);
     }
 
@@ -167,13 +145,8 @@ mod tests {
     }
 
     #[test]
-    fn text_is_made_into_a_sentence() {
-        let cases = [
-            ("", ""),
-            ("  HELLO   THERE ", "Hello there"),
-            ("I THINK I'M HERE", "I think I'm here"),
-            ("WHAT IS IT", "What is it"),
-        ];
+    fn recognized_text_is_trimmed_and_keeps_its_case() {
+        let cases = [("", ""), ("  Hello,   World ", "Hello, World")];
 
         for (recognized, expected) in cases {
             assert_eq!(tidy(recognized), expected);

@@ -6,14 +6,8 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use super::session::{Parts, Session, Settings};
-use super::{
-    Engine, EngineError, EngineState, EventSink, INPUT_SAMPLE_RATE, Listener, Resources,
-    StateMachine, Stt, Tts,
-};
-use crate::audio::resample::resample_clip;
+use super::{Engine, EngineError, EngineState, EventSink, Listener, Resources, StateMachine};
 use crate::config::Config;
-
-const WARM_UP_TEXT: &str = "Hello.";
 
 enum Command {
     Enable,
@@ -178,8 +172,7 @@ impl Worker {
     fn load(&self, id: u32) -> Result<Parts, EngineError> {
         let config = (self.settings)();
         let output = self.resources.open_output()?;
-        let mut models = self.resources.load_models(&config)?;
-        warm_up(models.stt.as_mut(), models.tts.as_mut())?;
+        let models = self.resources.load_models(&config)?;
         let input = self.resources.open_input(config.input_device.as_deref())?;
 
         let commands = self.commands.clone();
@@ -199,20 +192,6 @@ impl Worker {
     }
 }
 
-/// Lets the recognizer hear a spoken word, because it misses the first word it ever hears.
-fn warm_up(stt: &mut dyn Stt, tts: &mut dyn Tts) -> Result<(), EngineError> {
-    let speech = tts.synthesize(WARM_UP_TEXT, 1.0)?;
-    let speech = resample_clip(&speech, tts.sample_rate(), INPUT_SAMPLE_RATE)?;
-
-    let silence = |seconds: usize| vec![0.0; INPUT_SAMPLE_RATE as usize * seconds];
-    let mut audio = silence(1);
-    audio.extend(speech);
-    audio.extend(silence(2));
-    stt.accept(&audio);
-    stt.finish();
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::Ordering;
@@ -220,8 +199,9 @@ mod tests {
 
     use super::*;
     use crate::audio::devices::AudioError;
+    use crate::audio::resample::resample_clip;
     use crate::engine::fakes::FakeResources;
-    use crate::engine::{EngineEvent, Heard, LocalResources, Transcript};
+    use crate::engine::{EngineEvent, Heard, INPUT_SAMPLE_RATE, LocalResources, Transcript};
     use crate::error::ErrorCode;
 
     fn speech() -> Vec<f32> {
@@ -289,14 +269,14 @@ mod tests {
                 state_changed(EngineState::Loading),
                 state_changed(EngineState::Listening),
                 EngineEvent::TranscriptPartial(transcript("Hello")),
-                EngineEvent::TranscriptFinal(transcript("Hello there")),
+                EngineEvent::TranscriptFinal(transcript("Hello world")),
                 state_changed(EngineState::Speaking),
                 state_changed(EngineState::Listening),
             ],
         );
         assert_eq!(
             *resources.played.lock().unwrap(),
-            [vec![0.5; "Hello there".len()]]
+            [vec![0.5; "Hello world".len()]]
         );
 
         engine.set_enabled(false).unwrap();
@@ -373,7 +353,6 @@ mod tests {
         let mut models = LocalResources::new(models_dir)
             .load_models(&Config::default())
             .unwrap();
-        warm_up(models.stt.as_mut(), models.tts.as_mut()).unwrap();
 
         let sentence = "Hello there, this is a test of the voice proxy.";
         let speech = models.tts.synthesize(sentence, 1.0).unwrap();
@@ -391,6 +370,7 @@ mod tests {
         let Some(Heard::Final(text)) = heard.last() else {
             panic!("no utterance ended: {heard:?}");
         };
+        let text = text.to_lowercase();
         assert!(text.contains("test") && text.contains("voice"), "{text}");
     }
 

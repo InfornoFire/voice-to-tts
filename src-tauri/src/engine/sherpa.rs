@@ -8,7 +8,7 @@ use std::path::Path;
 
 use super::SpeechError;
 
-pub use stt::ZipformerStt;
+pub use stt::{ZipformerFiles, ZipformerStt};
 pub use tts::SherpaTts;
 pub use vad::SileroVad;
 
@@ -31,6 +31,7 @@ mod tests {
 
     use super::*;
     use crate::audio::resample::resample_clip;
+    use crate::engine::local::{RECOGNIZER_DIR, RECOGNIZER_FILES};
     use crate::engine::{Stt, Tts, Vad};
 
     const THREADS: u8 = 2;
@@ -152,8 +153,7 @@ mod tests {
             SileroVad::load(&models.join("silero_vad.onnx")).unwrap()
         });
         let mut stt = timed("load recognition", || {
-            let dir = models.join("sherpa-onnx-streaming-zipformer-en-20M-2023-02-17");
-            ZipformerStt::load(&dir, THREADS).unwrap()
+            ZipformerStt::load(&models.join(RECOGNIZER_DIR), RECOGNIZER_FILES, THREADS).unwrap()
         });
         let mut kokoro = timed("load Kokoro", || {
             SherpaTts::kokoro(&models.join("kokoro-int8-en-v0_19"), &lexicon, THREADS).unwrap()
@@ -161,11 +161,6 @@ mod tests {
         let mut kitten = timed("load Kitten", || {
             SherpaTts::kitten(&models.join("kitten-nano-en-v0_8-int8"), &lexicon, THREADS).unwrap()
         });
-
-        // The recognizer drops the first word of its first utterance, so it hears one beforehand.
-        let hello = kitten.synthesize("Hello.", 1.0).unwrap();
-        stt.accept(&microphone_audio(&hello, kitten.sample_rate()));
-        stt.finish();
 
         let samples_dir = models.join("samples");
         fs::create_dir_all(&samples_dir).unwrap();

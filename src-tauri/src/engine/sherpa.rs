@@ -200,4 +200,37 @@ mod tests {
             }
         });
     }
+
+    #[test]
+    #[ignore = "needs the models downloaded to the models directory"]
+    fn idle_cost_of_the_loaded_models() {
+        use crate::config::Config;
+        use crate::engine::{Listener, LocalResources, Resources};
+        use crate::models::Manifest;
+
+        const POLL_SAMPLES: usize = 320;
+        const SECONDS: usize = 60;
+
+        let before = working_set_megabytes();
+        let resources = LocalResources::new(models_dir(), Manifest::bundled().voices);
+        let models = timed("load all the models", || {
+            resources.load_models(&Config::default()).unwrap()
+        });
+        let mut listener = Listener::new(models.vad, models.stt);
+        let silence = vec![0.0; POLL_SAMPLES];
+
+        // The app hands the listener 20 ms of audio at a time.
+        timed(&format!("{SECONDS} s of silence while listening"), || {
+            for _ in 0..SECONDS * 50 {
+                listener.accept(&silence);
+            }
+        });
+
+        drop(listener);
+        drop(models.tts);
+        println!(
+            "memory: {before:.0} MB before loading, {:.0} MB after unloading",
+            working_set_megabytes()
+        );
+    }
 }

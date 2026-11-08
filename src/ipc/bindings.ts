@@ -59,6 +59,8 @@ export type Config = {
 	threads: number,
 	/**  Whether the main window stays hidden on launch. */
 	start_minimized: boolean,
+	/**  Whether the user has been through the setup guide. */
+	setup_guide_done: boolean,
 };
 
 /**  What the engine is doing right now. */

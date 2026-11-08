@@ -59,6 +59,13 @@ export function toggleEngine() {
   void setEnabled(!isEngineOn.value);
 }
 
+const TEST_SENTENCE = "Hello, this is a test of voice-to-tts.";
+
+/** Speaks a short sentence, so the input level of a chat app can be watched. */
+export function playTestSentence(): Promise<boolean> {
+  return speakText(TEST_SENTENCE);
+}
+
 /** Speaks `text`, resolving with whether the engine accepted it. */
 export async function speakText(text: string): Promise<boolean> {
   commandError.value = null;

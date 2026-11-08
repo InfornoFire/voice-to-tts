@@ -30,6 +30,8 @@ const THREAD_OPTIONS = THREAD_COUNTS.map((count) => ({
 
 const closeSettings = () => navigate("main");
 
+const openGuide = () => navigate("guide");
+
 const reloadDevices = () => {
   void refreshInputDevices();
 };
@@ -92,6 +94,9 @@ function SettingsView() {
             hint="Open in the background when the app starts."
             onChange={(startMinimized) => updateSettings({ start_minimized: startMinimized })}
           />
+          <button type="button" class="button settings-guide" onClick={openGuide}>
+            Show the setup guide
+          </button>
           <About />
         </div>
       )}

@@ -1,6 +1,6 @@
 import { signal } from "@preact/signals";
 
-export type View = "main" | "settings";
+export type View = "main" | "settings" | "guide";
 
 export const currentView = signal<View>("main");
 

@@ -7,3 +7,7 @@
   overflow-y: auto;
   scrollbar-width: none;
 }
+
+.settings-guide {
+  align-self: flex-start;
+}

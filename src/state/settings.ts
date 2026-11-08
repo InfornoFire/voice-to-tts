@@ -2,6 +2,7 @@ import { signal } from "@preact/signals";
 
 import { type Config, type UserFacingError, commands, toUserFacingError, unwrap } from "../ipc";
 import { config } from "./config";
+import { navigate } from "./view";
 
 const SAVE_DELAY_MS = 400;
 
@@ -26,6 +27,12 @@ export function updateSettings(changes: Partial<Config>) {
   edits += 1;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveSettings, SAVE_DELAY_MS);
+}
+
+/** Remembers that the setup guide was seen, and goes to the main view. */
+export function finishGuide() {
+  updateSettings({ setup_guide_done: true });
+  navigate("main");
 }
 
 /** Stops the global shortcut from switching the engine while a new one is being recorded. */

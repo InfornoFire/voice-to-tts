@@ -134,6 +134,7 @@ mod tests {
                 tts_speed: 1.5,
                 threads: 200,
                 start_minimized: true,
+                setup_guide_done: true,
             })
             .unwrap();
 

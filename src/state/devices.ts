@@ -10,8 +10,11 @@ import {
 
 export const inputDevices = signal<InputDevice[]>([]);
 
-/** Why the virtual microphone cannot be used, or null when it can. */
+/** Why the virtual microphone cannot be used, or null when it can or has not been checked yet. */
 export const cableError = signal<UserFacingError | null>(null);
+
+/** Whether the virtual microphone has been checked at least once. */
+export const isCableChecked = signal(false);
 
 /** Why the microphone list could not be read. */
 export const deviceError = signal<UserFacingError | null>(null);
@@ -23,6 +26,7 @@ export async function checkCable() {
   } catch (error) {
     cableError.value = toUserFacingError(error);
   }
+  isCableChecked.value = true;
 }
 
 export async function refreshInputDevices() {

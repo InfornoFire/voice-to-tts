@@ -32,6 +32,8 @@ pub struct Config {
     pub threads: u8,
     /// Whether the main window stays hidden on launch.
     pub start_minimized: bool,
+    /// Whether the user has been through the setup guide.
+    pub setup_guide_done: bool,
 }
 
 impl Default for Config {
@@ -43,6 +45,7 @@ impl Default for Config {
             tts_speed: DEFAULT_TTS_SPEED,
             threads: DEFAULT_THREADS,
             start_minimized: false,
+            setup_guide_done: false,
         }
     }
 }

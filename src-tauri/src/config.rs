@@ -28,6 +28,9 @@ pub struct Config {
     pub tts_voice: String,
     /// Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`].
     pub tts_speed: f32,
+    /// Whether the voice also plays through the audio output while it goes to the virtual
+    /// microphone.
+    pub hear_voice: bool,
     /// Maximum number of inference threads, between [`MIN_THREADS`] and [`MAX_THREADS`].
     pub threads: u8,
     /// Whether the main window stays hidden on launch.
@@ -43,6 +46,7 @@ impl Default for Config {
             hotkey: DEFAULT_HOTKEY.to_owned(),
             tts_voice: DEFAULT_TTS_VOICE.to_owned(),
             tts_speed: DEFAULT_TTS_SPEED,
+            hear_voice: false,
             threads: DEFAULT_THREADS,
             start_minimized: false,
             setup_guide_done: false,

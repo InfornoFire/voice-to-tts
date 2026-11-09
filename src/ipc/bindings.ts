@@ -12,14 +12,14 @@ export const commands = {
 	 *  A new shortcut is registered first, so nothing is saved when it is unavailable.
 	 */
 	updateConfig: (config: Config) => typedError<Config, UserFacingError>(__TAURI_INVOKE("update_config", { config })),
-	/**  Succeeds when the virtual microphone is installed. */
-	checkCable: () => typedError<null, UserFacingError>(__TAURI_INVOKE("check_cable")),
+	/**  Whether the virtual microphone is installed. */
+	isCableInstalled: () => __TAURI_INVOKE<boolean>("is_cable_installed"),
 	/**  Lists the microphones the user can capture from. */
 	listInputDevices: () => typedError<InputDevice[], UserFacingError>(__TAURI_INVOKE("list_input_devices")),
 	getEngineState: () => __TAURI_INVOKE<EngineState>("get_engine_state"),
 	/**  Turns the engine on or off. Progress is reported through state events. */
 	setEnabled: (enabled: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_enabled", { enabled })),
-	/**  Speaks `text` through the virtual microphone. */
+	/**  Speaks `text` as if it had been said into the microphone. */
 	speakText: (text: string) => typedError<null, UserFacingError>(__TAURI_INVOKE("speak_text", { text })),
 	/**  Stops the shortcut from switching the engine while a new one is being recorded. */
 	setHotkeyPaused: (paused: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_hotkey_paused", { paused })),
@@ -55,6 +55,11 @@ export type Config = {
 	tts_voice: string,
 	/**  Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`]. */
 	tts_speed: number | null,
+	/**
+	 *  Whether the voice also plays through the audio output while it goes to the virtual
+	 *  microphone.
+	 */
+	hear_voice: boolean,
 	/**  Maximum number of inference threads, between [`MIN_THREADS`] and [`MAX_THREADS`]. */
 	threads: number,
 	/**  Whether the main window stays hidden on launch. */
@@ -71,7 +76,7 @@ export type EngineState = { status: "off" } |
 { status: "speaking" } | { status: "error"; error: UserFacingError };
 
 /**  The single recovery button the UI offers next to an error. */
-export type ErrorAction = "repair" | "install_cable" | "pick_mic" | "retry";
+export type ErrorAction = "repair" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
 export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "models_download_failed" | "speech_failed" | "hotkey_unavailable";

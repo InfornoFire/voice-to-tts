@@ -13,3 +13,7 @@
 .checkbox-field input {
   accent-color: var(--color-accent);
 }
+
+.checkbox-field input:disabled {
+  cursor: not-allowed;
+}

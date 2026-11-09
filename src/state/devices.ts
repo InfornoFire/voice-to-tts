@@ -7,27 +7,15 @@ import {
   toUserFacingError,
   unwrap,
 } from "../ipc";
+import { logFailure } from "../lib/log";
 
 export const inputDevices = signal<InputDevice[]>([]);
 
-/** Why the virtual microphone cannot be used, or null when it can or has not been checked yet. */
-export const cableError = signal<UserFacingError | null>(null);
-
-/** Whether the virtual microphone has been checked at least once. */
-export const isCableChecked = signal(false);
+/** Whether the virtual microphone is installed, or null until it has been checked. */
+export const isCableInstalled = signal<boolean | null>(null);
 
 /** Why the microphone list could not be read. */
 export const deviceError = signal<UserFacingError | null>(null);
-
-export async function checkCable() {
-  try {
-    await unwrap(commands.checkCable());
-    cableError.value = null;
-  } catch (error) {
-    cableError.value = toUserFacingError(error);
-  }
-  isCableChecked.value = true;
-}
 
 export async function refreshInputDevices() {
   try {
@@ -38,11 +26,15 @@ export async function refreshInputDevices() {
   }
 }
 
+async function checkCable() {
+  isCableInstalled.value = await commands.isCableInstalled();
+}
+
 const recheckCable = () => {
-  void checkCable();
+  checkCable().catch(logFailure("Failed to check for the virtual microphone."));
 };
 
-/** Checks the virtual microphone now and whenever the window regains focus. */
+/** Checks for the virtual microphone now and whenever the window regains focus. */
 export function syncDevices() {
   recheckCable();
   window.addEventListener("focus", recheckCable);

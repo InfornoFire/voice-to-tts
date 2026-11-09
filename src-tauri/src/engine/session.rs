@@ -176,7 +176,7 @@ fn listen(
     }
 }
 
-/// Turns each requested text into speech on the virtual microphone, one after the other.
+/// Turns each requested text into speech on the output, one after the other.
 fn speak(
     shared: &Shared,
     requests: &Receiver<String>,

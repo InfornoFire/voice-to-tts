@@ -112,12 +112,8 @@ impl Default for FakeResources {
 }
 
 impl Resources for FakeResources {
-    fn check_cable(&self) -> Result<(), AudioError> {
-        if self.cable_installed {
-            Ok(())
-        } else {
-            Err(AudioError::CableMissing)
-        }
+    fn is_cable_installed(&self) -> bool {
+        self.cable_installed
     }
 
     fn is_virtual_microphone(&self, _device_id: Option<&str>) -> bool {
@@ -137,8 +133,8 @@ impl Resources for FakeResources {
     }
 
     fn open_output(&self, target: OutputTarget) -> Result<Box<dyn AudioOutput>, AudioError> {
-        if target == OutputTarget::VirtualMicrophone {
-            self.check_cable()?;
+        if target == OutputTarget::VirtualMicrophone && !self.cable_installed {
+            return Err(AudioError::CableMissing);
         }
         self.outputs.lock().unwrap().push(target);
         Ok(Box::new(FakeOutput {

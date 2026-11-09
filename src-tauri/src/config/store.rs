@@ -134,6 +134,7 @@ mod tests {
                 hotkey: "Ctrl+Shift+T".to_owned(),
                 tts_voice: "amy".to_owned(),
                 tts_speed: 1.5,
+                hear_voice: true,
                 threads: 200,
                 start_minimized: true,
                 setup_guide_done: true,

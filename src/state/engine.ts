@@ -8,8 +8,6 @@ import {
   toUserFacingError,
   unwrap,
 } from "../ipc";
-import { VB_CABLE_URL, openLink } from "../lib/links";
-import { cableError, checkCable } from "./devices";
 import { downloadModels } from "./models";
 import { syncWithBackend } from "./sync";
 import { navigate } from "./view";
@@ -30,13 +28,10 @@ export const isEngineRunning = computed(() => {
   return status === "listening" || status === "speaking";
 });
 
-/** Whether the switch can be used. A running engine can always be switched off. */
-export const canToggleEngine = computed(() => isEngineOn.value || cableError.value === null);
-
-/** The failure to show the user, from the virtual microphone, the last command or the engine. */
+/** The failure to show the user, from the last command or the engine. */
 export const activeError = computed(() => {
   const state = engineState.value;
-  return cableError.value ?? commandError.value ?? (state.status === "error" ? state.error : null);
+  return commandError.value ?? (state.status === "error" ? state.error : null);
 });
 
 /** Keeps `engineState` in step with the backend. */
@@ -76,11 +71,9 @@ export async function speakText(text: string): Promise<boolean> {
 /** Does what the button on `error` offers. */
 export function runErrorAction({ action, code }: UserFacingError) {
   if (action === "retry") {
-    void retry();
+    void setEnabled(true);
   } else if (action === "pick_mic") {
     navigate("settings");
-  } else if (action === "install_cable") {
-    openLink(VB_CABLE_URL);
   } else if (action === "repair" && code === "models_unavailable") {
     void repairModels();
   }
@@ -91,13 +84,6 @@ export async function repairModels() {
   const state = engineState.peek();
   const stoppedByModels = state.status === "error" && state.error.code === "models_unavailable";
   if ((await downloadModels()) && stoppedByModels) {
-    await retry();
-  }
-}
-
-async function retry() {
-  await checkCable();
-  if (cableError.value === null) {
     await setEnabled(true);
   }
 }

@@ -12,7 +12,7 @@ pub struct Models {
     pub tts: Box<dyn Tts>,
 }
 
-/// Where speech is played.
+/// An output that speech is played through.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputTarget {
     /// The virtual microphone, so a chat app hears it.
@@ -23,8 +23,8 @@ pub enum OutputTarget {
 
 /// The audio devices and models a running engine uses.
 pub trait Resources: Send + Sync {
-    /// Succeeds when the virtual microphone is installed.
-    fn check_cable(&self) -> Result<(), AudioError>;
+    /// Whether the virtual microphone is installed.
+    fn is_cable_installed(&self) -> bool;
 
     /// Whether the microphone with `device_id`, or the system default when `None`, is the output of
     /// the virtual microphone.

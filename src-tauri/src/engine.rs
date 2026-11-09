@@ -1,4 +1,4 @@
-//! The engine that turns speech from the microphone into speech on the virtual microphone.
+//! The engine that turns speech from the microphone into speech on an audio output.
 
 mod event;
 #[cfg(test)]

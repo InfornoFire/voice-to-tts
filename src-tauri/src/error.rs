@@ -30,7 +30,6 @@ pub enum ErrorCode {
 #[serde(rename_all = "snake_case")]
 pub enum ErrorAction {
     Repair,
-    InstallCable,
     PickMic,
     Retry,
 }
@@ -127,8 +126,8 @@ impl From<AudioError> for UserFacingError {
         match error {
             AudioError::CableMissing => Self {
                 code: ErrorCode::CableMissing,
-                message: "The virtual microphone is not installed. Download VB-CABLE, run its setup as administrator, then restart your computer.".to_owned(),
-                action: Some(ErrorAction::InstallCable),
+                message: "The virtual microphone was removed. Turn the switch on again to use your audio output instead.".to_owned(),
+                action: Some(ErrorAction::Retry),
             },
             AudioError::OpenCable(_) => Self {
                 code: ErrorCode::CableMissing,
@@ -142,7 +141,7 @@ impl From<AudioError> for UserFacingError {
             },
             AudioError::OutputMissing | AudioError::OpenOutput(_) => Self {
                 code: ErrorCode::AudioUnavailable,
-                message: "No audio output could be used to play the voice. Check that your speakers or headphones are connected, then try again.".to_owned(),
+                message: "No audio output could be used to play the voice. Check that your audio output is connected, then try again.".to_owned(),
                 action: Some(ErrorAction::Retry),
             },
             AudioError::Host(_) | AudioError::Resample(_) => Self {

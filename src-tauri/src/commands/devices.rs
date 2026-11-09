@@ -10,9 +10,9 @@ pub async fn list_input_devices() -> Result<Vec<InputDevice>, UserFacingError> {
     Ok(devices::list_input_devices()?)
 }
 
-/// Succeeds when the virtual microphone is installed.
+/// Whether the virtual microphone is installed.
 #[tauri::command]
 #[specta::specta]
-pub async fn check_cable() -> Result<(), UserFacingError> {
-    Ok(devices::check_cable()?)
+pub async fn is_cable_installed() -> bool {
+    devices::is_cable_installed()
 }

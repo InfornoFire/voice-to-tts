@@ -9,6 +9,7 @@ use super::session::{Parts, Session, Settings};
 use super::{
     Engine, EngineError, EngineState, EventSink, Listener, OutputTarget, Resources, StateMachine,
 };
+use crate::audio::fan_out::FanOutOutput;
 use crate::config::Config;
 
 enum Command {
@@ -23,14 +24,13 @@ enum Command {
     Shutdown,
 }
 
-/// An [`Engine`] that listens to the microphone and speaks through the virtual microphone, or
-/// through the default audio output when the virtual microphone is what it listens to.
+/// An [`Engine`] that listens to the microphone and speaks through the virtual microphone when
+/// there is one, and through the default audio output otherwise or when asked to.
 ///
 /// All state changes beyond speaking happen on one worker thread, which sleeps while the engine is
 /// off. The microphone and the models are only held while the engine is on.
 pub struct PipelineEngine {
     state: Arc<StateMachine>,
-    resources: Arc<dyn Resources>,
     commands: Sender<Command>,
 }
 
@@ -41,12 +41,11 @@ impl PipelineEngine {
         settings: impl Fn() -> Config + Send + Sync + 'static,
     ) -> Self {
         let state = Arc::new(StateMachine::new(Arc::clone(&sink)));
-        let resources: Arc<dyn Resources> = Arc::new(resources);
         let (commands, receiver) = mpsc::channel();
         let worker = Worker {
             state: Arc::clone(&state),
             sink,
-            resources: Arc::clone(&resources),
+            resources: Arc::new(resources),
             settings: Arc::new(settings),
             utterance_ids: Arc::new(AtomicU32::new(0)),
             commands: commands.clone(),
@@ -54,11 +53,7 @@ impl PipelineEngine {
             sessions_started: 0,
         };
         thread::spawn(move || worker.run(&receiver));
-        Self {
-            state,
-            resources,
-            commands,
-        }
+        Self { state, commands }
     }
 
     fn send(&self, command: Command) {
@@ -68,9 +63,6 @@ impl PipelineEngine {
 
 impl Engine for PipelineEngine {
     fn set_enabled(&self, enabled: bool) -> Result<(), EngineError> {
-        if enabled {
-            self.resources.check_cable()?;
-        }
         self.send(if enabled {
             Command::Enable
         } else {
@@ -95,6 +87,23 @@ impl Engine for PipelineEngine {
 impl Drop for PipelineEngine {
     fn drop(&mut self) {
         self.send(Command::Shutdown);
+    }
+}
+
+/// The outputs to play speech through.
+///
+/// Speech goes to the virtual microphone when there is one, unless that is what is listened to,
+/// because it would be heard again. It goes to the default audio output when the user wants to hear
+/// it too, and whenever nothing else would receive it.
+fn output_targets(
+    cable_installed: bool,
+    microphone_is_virtual: bool,
+    hear_voice: bool,
+) -> Vec<OutputTarget> {
+    match (cable_installed && !microphone_is_virtual, hear_voice) {
+        (true, false) => vec![OutputTarget::VirtualMicrophone],
+        (true, true) => vec![OutputTarget::VirtualMicrophone, OutputTarget::DefaultOutput],
+        (false, _) => vec![OutputTarget::DefaultOutput],
     }
 }
 
@@ -174,23 +183,23 @@ impl Worker {
     /// The microphone is opened last, so it does not collect audio while the models load.
     fn load(&self, id: u32) -> Result<Parts, EngineError> {
         let config = (self.settings)();
-        // Speech played into the virtual microphone while listening to it would be heard again.
-        let target = if self
-            .resources
-            .is_virtual_microphone(config.input_device.as_deref())
-        {
-            OutputTarget::DefaultOutput
-        } else {
-            OutputTarget::VirtualMicrophone
-        };
-        let output = self.resources.open_output(target)?;
+        let targets = output_targets(
+            self.resources.is_cable_installed(),
+            self.resources
+                .is_virtual_microphone(config.input_device.as_deref()),
+            config.hear_voice,
+        );
+        let outputs = targets
+            .into_iter()
+            .map(|target| self.resources.open_output(target))
+            .collect::<Result<Vec<_>, _>>()?;
         let models = self.resources.load_models(&config)?;
         let input = self.resources.open_input(config.input_device.as_deref())?;
 
         let commands = self.commands.clone();
         Ok(Parts {
             input,
-            output,
+            output: Box::new(FanOutOutput::new(outputs)),
             listener: Listener::new(models.vad, models.stt),
             tts: models.tts,
             state: Arc::clone(&self.state),
@@ -207,10 +216,8 @@ impl Worker {
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::Ordering;
-    use std::time::Duration;
 
     use super::*;
-    use crate::audio::devices::AudioError;
     use crate::engine::EngineEvent;
     use crate::engine::fakes::{FakeResources, next_event, state_changed, transcript};
     use crate::error::ErrorCode;
@@ -224,8 +231,16 @@ mod tests {
     }
 
     fn engine_with(resources: &FakeResources) -> (PipelineEngine, Receiver<EngineEvent>) {
+        engine_with_config(resources, Config::default())
+    }
+
+    fn engine_with_config(
+        resources: &FakeResources,
+        config: Config,
+    ) -> (PipelineEngine, Receiver<EngineEvent>) {
         let (sender, events) = mpsc::channel();
-        let engine = PipelineEngine::new(Arc::new(sender), resources.clone(), Config::default);
+        let engine =
+            PipelineEngine::new(Arc::new(sender), resources.clone(), move || config.clone());
         (engine, events)
     }
 
@@ -279,18 +294,26 @@ mod tests {
     }
 
     #[test]
-    fn speech_is_never_played_into_the_virtual_microphone_that_is_listened_to() {
+    fn speech_goes_to_the_virtual_microphone_only_when_it_exists_and_is_not_listened_to() {
+        use OutputTarget::{DefaultOutput, VirtualMicrophone};
         let cases = [
-            (false, OutputTarget::VirtualMicrophone),
-            (true, OutputTarget::DefaultOutput),
+            (true, false, false, vec![VirtualMicrophone]),
+            (true, false, true, vec![VirtualMicrophone, DefaultOutput]),
+            (true, true, true, vec![DefaultOutput]),
+            (false, false, false, vec![DefaultOutput]),
         ];
 
-        for (microphone_is_virtual, expected) in cases {
+        for (cable_installed, microphone_is_virtual, hear_voice, expected) in cases {
             let resources = FakeResources {
+                cable_installed,
                 microphone_is_virtual,
                 ..FakeResources::default()
             };
-            let (engine, events) = engine_with(&resources);
+            let config = Config {
+                hear_voice,
+                ..Config::default()
+            };
+            let (engine, events) = engine_with_config(&resources, config);
 
             engine.set_enabled(true).unwrap();
 
@@ -301,7 +324,7 @@ mod tests {
                     state_changed(EngineState::Listening),
                 ],
             );
-            assert_eq!(*resources.outputs.lock().unwrap(), [expected]);
+            assert_eq!(*resources.outputs.lock().unwrap(), expected);
         }
     }
 
@@ -385,23 +408,5 @@ mod tests {
             engine.speak_text("hi"),
             Err(EngineError::NotRunning)
         ));
-    }
-
-    #[test]
-    fn enabling_is_refused_without_the_virtual_microphone() {
-        let resources = FakeResources {
-            cable_installed: false,
-            ..FakeResources::default()
-        };
-        let (engine, events) = engine_with(&resources);
-
-        let result = engine.set_enabled(true);
-
-        assert!(matches!(
-            result,
-            Err(EngineError::Audio(AudioError::CableMissing))
-        ));
-        assert!(events.recv_timeout(Duration::from_millis(50)).is_err());
-        assert_eq!(engine.state(), EngineState::Off);
     }
 }

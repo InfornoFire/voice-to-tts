@@ -7,7 +7,6 @@ use std::thread;
 use std::time::Duration;
 
 use super::{Engine, EngineError, EngineEvent, EngineState, EventSink, StateMachine, Transcript};
-use crate::audio::devices::AudioError;
 
 #[cfg(feature = "mock-engine")]
 const SENTENCES: &[&str] = &[
@@ -60,21 +59,16 @@ struct Step {
 pub struct MockEngine {
     state: Arc<StateMachine>,
     commands: Sender<Command>,
-    check_cable: Box<dyn Fn() -> Result<(), AudioError> + Send + Sync>,
 }
 
 impl MockEngine {
     #[cfg(feature = "mock-engine")]
-    pub fn new(
-        sink: Arc<dyn EventSink>,
-        check_cable: impl Fn() -> Result<(), AudioError> + Send + Sync + 'static,
-    ) -> Self {
-        Self::with_script(sink, check_cable, SENTENCES, PACING)
+    pub fn new(sink: Arc<dyn EventSink>) -> Self {
+        Self::with_script(sink, SENTENCES, PACING)
     }
 
     fn with_script(
         sink: Arc<dyn EventSink>,
-        check_cable: impl Fn() -> Result<(), AudioError> + Send + Sync + 'static,
         sentences: &'static [&'static str],
         pacing: Pacing,
     ) -> Self {
@@ -90,11 +84,7 @@ impl MockEngine {
             next_utterance_id: 0,
         };
         thread::spawn(move || worker.run(&receiver));
-        Self {
-            state,
-            commands,
-            check_cable: Box::new(check_cable),
-        }
+        Self { state, commands }
     }
 
     fn send(&self, command: Command) {
@@ -104,9 +94,6 @@ impl MockEngine {
 
 impl Engine for MockEngine {
     fn set_enabled(&self, enabled: bool) -> Result<(), EngineError> {
-        if enabled {
-            (self.check_cable)()?;
-        }
         self.send(if enabled {
             Command::Enable
         } else {
@@ -257,7 +244,7 @@ mod tests {
         sentences: &'static [&'static str],
     ) -> (MockEngine, Receiver<EngineEvent>) {
         let (sender, events) = mpsc::channel();
-        let engine = MockEngine::with_script(Arc::new(sender), || Ok(()), sentences, FAST);
+        let engine = MockEngine::with_script(Arc::new(sender), sentences, FAST);
         (engine, events)
     }
 
@@ -302,21 +289,5 @@ mod tests {
 
         assert_eq!(next_event(&events), state_changed(EngineState::Speaking));
         assert_eq!(next_event(&events), state_changed(EngineState::Listening));
-    }
-
-    #[test]
-    fn enabling_is_refused_without_the_virtual_microphone() {
-        let (sender, events) = mpsc::channel();
-        let missing = || Err(AudioError::CableMissing);
-        let engine = MockEngine::with_script(Arc::new(sender), missing, &["hello"], FAST);
-
-        let result = engine.set_enabled(true);
-
-        assert!(matches!(
-            result,
-            Err(EngineError::Audio(AudioError::CableMissing))
-        ));
-        assert!(events.recv_timeout(Duration::from_millis(50)).is_err());
-        assert_eq!(engine.state(), EngineState::Off);
     }
 }

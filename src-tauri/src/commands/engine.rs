@@ -13,7 +13,7 @@ pub async fn set_enabled(state: State<'_, AppState>, enabled: bool) -> Result<()
     Ok(state.engine.set_enabled(enabled)?)
 }
 
-/// Speaks `text` through the virtual microphone.
+/// Speaks `text` as if it had been said into the microphone.
 #[tauri::command]
 #[specta::specta]
 pub async fn speak_text(state: State<'_, AppState>, text: String) -> Result<(), UserFacingError> {

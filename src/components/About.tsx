@@ -37,7 +37,7 @@ function About() {
         About
       </h2>
       <p class="hint">
-        The virtual microphone is VB-CABLE, from{" "}
+        The optional virtual microphone is VB-CABLE, from{" "}
         <ExternalLink href={VB_CABLE_URL}>www.vb-cable.com</ExternalLink>.
       </p>
       <ul class="about-credits hint">

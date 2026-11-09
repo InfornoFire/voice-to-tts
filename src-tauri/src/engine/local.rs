@@ -6,7 +6,7 @@ use super::{
     INPUT_SAMPLE_RATE, Models, OutputTarget, Resources, SherpaTts, SileroVad, SpeechError,
     StreamingModel, StreamingStt,
 };
-use crate::audio::devices::{AudioError, check_cable, is_virtual_microphone};
+use crate::audio::devices::{AudioError, is_cable_installed, is_virtual_microphone};
 use crate::audio::microphone::Microphone;
 use crate::audio::playback::Playback;
 use crate::audio::{AudioInput, AudioOutput};
@@ -43,8 +43,8 @@ impl LocalResources {
 }
 
 impl Resources for LocalResources {
-    fn check_cable(&self) -> Result<(), AudioError> {
-        check_cable()
+    fn is_cable_installed(&self) -> bool {
+        is_cable_installed()
     }
 
     fn is_virtual_microphone(&self, device_id: Option<&str>) -> bool {

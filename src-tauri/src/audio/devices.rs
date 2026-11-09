@@ -67,9 +67,9 @@ pub fn list_input_devices() -> Result<Vec<InputDevice>, AudioError> {
     Ok(microphones(endpoints, default_id.as_deref()))
 }
 
-/// Succeeds when the virtual microphone is installed.
-pub fn check_cable() -> Result<(), AudioError> {
-    find_cable_output().map(drop)
+/// Whether the virtual microphone is installed.
+pub fn is_cable_installed() -> bool {
+    find_cable_output().is_ok()
 }
 
 /// Finds the input of the virtual microphone.

@@ -1,4 +1,5 @@
-//! A desktop app that speaks what is said into the microphone through a virtual microphone.
+//! A desktop app that speaks what is said into the microphone, optionally through a virtual
+//! microphone.
 
 // The scripted engine leaves the real engine and the audio code unused.
 #![cfg_attr(feature = "mock-engine", allow(dead_code, unused_imports))]
@@ -37,7 +38,7 @@ fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
         .commands(collect_commands![
             commands::config::get_config,
             commands::config::update_config,
-            commands::devices::check_cable,
+            commands::devices::is_cable_installed,
             commands::devices::list_input_devices,
             commands::engine::get_engine_state,
             commands::engine::set_enabled,
@@ -106,7 +107,7 @@ fn create_engine(
     _config: &Arc<ConfigStore>,
     _models: &ModelManager,
 ) -> Box<dyn Engine> {
-    Box::new(engine::MockEngine::new(events, audio::devices::check_cable))
+    Box::new(engine::MockEngine::new(events))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

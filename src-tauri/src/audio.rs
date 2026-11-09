@@ -2,6 +2,7 @@
 
 pub mod capture;
 pub mod devices;
+pub mod fan_out;
 pub mod microphone;
 pub mod playback;
 pub mod resample;

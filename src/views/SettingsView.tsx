@@ -9,7 +9,7 @@ import RangeField from "../components/RangeField";
 import SelectField from "../components/SelectField";
 import ViewHeader from "../components/ViewHeader";
 import { config } from "../state/config";
-import { deviceError, inputDevices, refreshInputDevices } from "../state/devices";
+import { deviceError, inputDevices, isCableInstalled, refreshInputDevices } from "../state/devices";
 import { voices } from "../state/models";
 import {
   THREAD_COUNTS,
@@ -27,6 +27,11 @@ const THREAD_OPTIONS = THREAD_COUNTS.map((count) => ({
   value: String(count),
   label: String(count),
 }));
+
+const HEAR_VOICE_HINT =
+  "Also play the voice through your audio output. Without this, only the chat app hears it.";
+const ALWAYS_HEARD_HINT =
+  "The voice has no virtual microphone to go to here, so it always plays through your audio output.";
 
 const closeSettings = () => navigate("main");
 
@@ -48,6 +53,11 @@ function SettingsView() {
   // A stored voice that no longer exists is spoken with the default, which is the first.
   const isKnownVoice = voices.value.some((voice) => voice.id === current?.tts_voice);
   const selectedVoice = isKnownVoice ? current?.tts_voice : voices.value[0]?.id;
+  // Without a virtual microphone to receive it, the voice plays through the audio output.
+  const isCableMicrophone = inputDevices.value.some(
+    (device) => device.id === current?.input_device && device.is_cable,
+  );
+  const voiceAlwaysHeard = isCableInstalled.value === false || isCableMicrophone;
 
   return (
     <main class="view">
@@ -74,6 +84,13 @@ function SettingsView() {
             step={TTS_SPEED.step}
             format={formatSpeed}
             onChange={(speed) => updateSettings({ tts_speed: speed })}
+          />
+          <CheckboxField
+            label="Hear the voice yourself"
+            checked={voiceAlwaysHeard || current.hear_voice}
+            disabled={voiceAlwaysHeard}
+            hint={voiceAlwaysHeard ? ALWAYS_HEARD_HINT : HEAR_VOICE_HINT}
+            onChange={(hearVoice) => updateSettings({ hear_voice: hearVoice })}
           />
           <SelectField
             label="CPU threads"

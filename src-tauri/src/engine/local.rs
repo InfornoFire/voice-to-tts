@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::{
     INPUT_SAMPLE_RATE, Models, OutputTarget, Resources, SherpaTts, SileroVad, SpeechError,
-    ZipformerFiles, ZipformerStt,
+    StreamingModel, StreamingStt,
 };
 use crate::audio::devices::{AudioError, check_cable, is_virtual_microphone};
 use crate::audio::microphone::Microphone;
@@ -12,13 +12,14 @@ use crate::config::Config;
 use crate::models::Voice;
 
 /// The directory of the speech recognition model within the models directory.
-pub(super) const RECOGNIZER_DIR: &str = "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06";
+pub(super) const RECOGNIZER_DIR: &str = "sherpa-onnx-nemotron-speech-streaming-en-0.6b-560ms-int8";
 
-pub(super) const RECOGNIZER_FILES: ZipformerFiles = ZipformerFiles {
-    encoder: "encoder.onnx",
-    decoder: "decoder.onnx",
-    joiner: "joiner.onnx",
+pub(super) const RECOGNIZER_MODEL: StreamingModel = StreamingModel {
+    encoder: "encoder.int8.onnx",
+    decoder: "decoder.int8.onnx",
+    joiner: "joiner.int8.onnx",
     tokens: "tokens.txt",
+    tail_padding_seconds: 0.3,
 };
 
 /// The audio devices of this machine and the models in a directory.
@@ -62,9 +63,9 @@ impl Resources for LocalResources {
         let lexicon = models.join("lexicon-en-us.txt");
         Ok(Models {
             vad: Box::new(SileroVad::load(&models.join("silero_vad.onnx"))?),
-            stt: Box::new(ZipformerStt::load(
+            stt: Box::new(StreamingStt::load(
                 &recognizer,
-                RECOGNIZER_FILES,
+                RECOGNIZER_MODEL,
                 config.threads,
             )?),
             tts: Box::new(SherpaTts::kitten(

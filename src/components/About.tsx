@@ -5,10 +5,10 @@ import "./About.css";
 
 const CREDITS = [
   {
-    name: "Kroko ASR",
-    href: "https://huggingface.co/Banafo/Kroko-ASR",
+    name: "Nemotron Speech Streaming",
+    href: "https://huggingface.co/nvidia/nemotron-speech-streaming-en-0.6b",
     role: "recognizes your speech",
-    license: "CC-BY-SA",
+    license: "NVIDIA Open Model License",
   },
   {
     name: "KittenTTS",
@@ -48,6 +48,7 @@ function About() {
           </li>
         ))}
       </ul>
+      <p class="hint">Licensed by NVIDIA Corporation under the NVIDIA Open Model License.</p>
     </section>
   );
 }

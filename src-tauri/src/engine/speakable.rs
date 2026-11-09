@@ -113,10 +113,6 @@ fn push_word(
 }
 
 fn speakable_word(word: &str, is_known: &impl Fn(&str) -> bool) -> String {
-    // The lexicon pronounces "a" as the letter, so the article is written as the sound it has.
-    if word == "a" {
-        return "uh".to_owned();
-    }
     let word = word.replace('\u{2019}', "'");
     if is_known(&word.to_lowercase()) {
         return word;
@@ -229,7 +225,7 @@ mod tests {
         let cases = [
             ("Hello world, the dog!", "Hello world, the dog!"),
             ("Don\u{2019}t", "Don't"),
-            ("a TTS", "uh t t s"),
+            ("a TTS", "a t t s"),
             ("ABC", "a b c"),
             ("hello tts", "hello t t s"),
             ("pfft", "p f f t"),

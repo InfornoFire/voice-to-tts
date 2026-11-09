@@ -16,10 +16,10 @@ You can also pick `CABLE Output` as the microphone of voice-to-tts itself, to sp
 
 ## Speech models
 
-Everything runs on your computer. The speech models (about 100 MB) are downloaded the first time the app starts and are stored in `%LOCALAPPDATA%\com.inforno.voice-to-tts\models`. [src-tauri/models.json](src-tauri/models.json) lists every file with its URL, size and SHA-256, and a download is only kept when it matches.
+Everything runs on your computer. The speech models (about 700 MB) are downloaded the first time the app starts and are stored in `%LOCALAPPDATA%\com.inforno.voice-to-tts\models`. [src-tauri/models.json](src-tauri/models.json) lists every file with its URL, size and SHA-256, and a download is only kept when it matches.
 
 - Voice detection: [Silero VAD](https://github.com/snakers4/silero-vad) (MIT).
-- Speech recognition: [Kroko ASR](https://huggingface.co/Banafo/Kroko-ASR) by Banafo (CC-BY-SA).
+- Speech recognition: [Nemotron Speech Streaming](https://huggingface.co/nvidia/nemotron-speech-streaming-en-0.6b) by NVIDIA. Licensed by NVIDIA Corporation under the NVIDIA Open Model License.
 - Voices: [KittenTTS](https://github.com/KittenML/KittenTTS) nano (Apache-2.0).
 - All of them run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx).
 

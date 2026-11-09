@@ -9,7 +9,7 @@ use std::path::Path;
 
 use super::SpeechError;
 
-pub use stt::{ZipformerFiles, ZipformerStt};
+pub use stt::{StreamingModel, StreamingStt};
 pub use tts::SherpaTts;
 pub use vad::SileroVad;
 
@@ -32,7 +32,7 @@ mod tests {
 
     use super::*;
     use crate::audio::resample::resample_clip;
-    use crate::engine::local::{RECOGNIZER_DIR, RECOGNIZER_FILES};
+    use crate::engine::local::{RECOGNIZER_DIR, RECOGNIZER_MODEL};
     use crate::engine::{Stt, Tts, Vad};
 
     const THREADS: u8 = 2;
@@ -121,7 +121,7 @@ mod tests {
     }
 
     /// Recognizes the detected speech, including a little audio before it.
-    fn recognize(vad: &mut SileroVad, stt: &mut ZipformerStt, audio: &[f32]) -> String {
+    fn recognize(vad: &mut SileroVad, stt: &mut StreamingStt, audio: &[f32]) -> String {
         let mut recent: Vec<&[f32]> = Vec::new();
         let (mut was_speaking, mut text) = (false, String::new());
         for chunk in audio.chunks(CHUNK_SAMPLES) {
@@ -154,7 +154,7 @@ mod tests {
             SileroVad::load(&models.join("silero_vad.onnx")).unwrap()
         });
         let mut stt = timed("load recognition", || {
-            ZipformerStt::load(&models.join(RECOGNIZER_DIR), RECOGNIZER_FILES, THREADS).unwrap()
+            StreamingStt::load(&models.join(RECOGNIZER_DIR), RECOGNIZER_MODEL, THREADS).unwrap()
         });
         let mut kokoro = timed("load Kokoro", || {
             let dir = models.join("kokoro-int8-en-v0_19");

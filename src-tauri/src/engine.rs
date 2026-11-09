@@ -20,7 +20,7 @@ mod vad;
 pub use event::{EngineEvent, EventSink, FanOutSink, Transcript};
 pub use listener::{Heard, Listener};
 pub use local::LocalResources;
-#[cfg(any(test, feature = "mock-engine"))]
+#[cfg(feature = "mock-engine")]
 pub use mock::MockEngine;
 pub use pipeline::PipelineEngine;
 pub use resources::{Models, OutputTarget, Resources};

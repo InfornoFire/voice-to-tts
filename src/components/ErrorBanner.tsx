@@ -5,14 +5,14 @@ import "./ErrorBanner.css";
 const ACTION_LABELS: Record<ErrorAction, string> = {
   repair: "Repair",
   install_cable: "Get VB-CABLE",
-  restart: "Restart",
   pick_mic: "Pick a microphone",
   retry: "Try again",
 };
 
 interface ErrorBannerProps {
   error: UserFacingError;
-  onAction: (action: ErrorAction) => void;
+  /** Called with `error` when its action button is pressed. */
+  onAction: (error: UserFacingError) => void;
 }
 
 function ErrorBanner({ error, onAction }: ErrorBannerProps) {
@@ -22,7 +22,7 @@ function ErrorBanner({ error, onAction }: ErrorBannerProps) {
     <div class="error-banner" role="alert">
       <p class="error-banner-message">{error.message}</p>
       {action && (
-        <button type="button" class="button" onClick={() => onAction(action)}>
+        <button type="button" class="button" onClick={() => onAction(error)}>
           {ACTION_LABELS[action]}
         </button>
       )}

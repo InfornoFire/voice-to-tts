@@ -31,7 +31,6 @@ pub enum ErrorCode {
 pub enum ErrorAction {
     Repair,
     InstallCable,
-    Restart,
     PickMic,
     Retry,
 }

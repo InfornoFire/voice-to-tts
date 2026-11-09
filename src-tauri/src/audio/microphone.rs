@@ -1,3 +1,5 @@
+//! The microphone as the engine reads it.
+
 use ringbuf::HeapCons;
 use ringbuf::traits::Consumer;
 

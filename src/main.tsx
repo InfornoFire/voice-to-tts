@@ -1,6 +1,7 @@
 import { render } from "preact";
 
 import App from "./App";
+import { logFailure } from "./lib/log";
 import { loadConfig } from "./state/config";
 import { syncDevices } from "./state/devices";
 import { syncEngineState } from "./state/engine";
@@ -9,8 +10,6 @@ import { syncTranscript } from "./state/transcript";
 
 import "./styles/tokens.css";
 import "./styles/base.css";
-
-const logFailure = (message: string) => (error: unknown) => console.error(message, error);
 
 render(<App />, document.getElementById("root")!);
 

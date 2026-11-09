@@ -1,3 +1,5 @@
+//! Commands for the global shortcut.
+
 use tauri::State;
 
 use crate::error::UserFacingError;

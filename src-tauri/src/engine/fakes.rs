@@ -4,12 +4,35 @@
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
-use super::{INPUT_SAMPLE_RATE, Models, OutputTarget, Resources, SpeechError, Stt, Tts, Vad};
+use super::{
+    EngineEvent, EngineState, INPUT_SAMPLE_RATE, Models, OutputTarget, Resources, SpeechError, Stt,
+    Transcript, Tts, Vad,
+};
 use crate::audio::devices::AudioError;
 use crate::audio::{AudioInput, AudioOutput};
 use crate::config::Config;
+
+/// The next event an engine reports, which should come soon.
+pub fn next_event(events: &Receiver<EngineEvent>) -> EngineEvent {
+    events
+        .recv_timeout(Duration::from_secs(5))
+        .expect("the engine should keep producing events")
+}
+
+pub fn state_changed(state: EngineState) -> EngineEvent {
+    EngineEvent::StateChanged(state)
+}
+
+pub fn transcript(utterance_id: u32, text: &str) -> Transcript {
+    Transcript {
+        utterance_id,
+        text: text.to_owned(),
+    }
+}
 
 pub struct LoudnessVad;
 
@@ -17,8 +40,6 @@ impl Vad for LoudnessVad {
     fn accept(&mut self, samples: &[f32]) -> bool {
         samples[0] > 0.0
     }
-
-    fn reset(&mut self) {}
 }
 
 /// Recognizes the same words in any audio and records what it is given.

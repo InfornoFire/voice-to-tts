@@ -1,3 +1,5 @@
+//! Commands for the speech models.
+
 use std::sync::Arc;
 
 use tauri::State;

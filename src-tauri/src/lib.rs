@@ -1,16 +1,21 @@
-pub mod audio;
-pub mod commands;
-pub mod config;
-pub mod download;
-pub mod engine;
-pub mod error;
-pub mod events;
-pub mod hotkey;
-pub mod models;
-pub mod platform;
-pub mod shell;
-pub mod state;
-pub mod tray;
+//! A desktop app that speaks what is said into the microphone through a virtual microphone.
+
+// The scripted engine leaves the real engine and the audio code unused.
+#![cfg_attr(feature = "mock-engine", allow(dead_code, unused_imports))]
+
+mod audio;
+mod commands;
+mod config;
+mod download;
+mod engine;
+mod error;
+mod events;
+mod hotkey;
+mod models;
+mod platform;
+mod shell;
+mod state;
+mod tray;
 
 use std::sync::Arc;
 

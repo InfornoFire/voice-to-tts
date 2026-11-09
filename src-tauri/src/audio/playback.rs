@@ -1,3 +1,5 @@
+//! Plays speech through an output device.
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
@@ -10,7 +12,7 @@ use ringbuf::{HeapCons, HeapProd, HeapRb};
 
 use super::devices::{AudioError, find_cable_output, find_default_output};
 use super::resample::resample_clip;
-use super::{AudioOutput, is_fatal};
+use super::{AudioOutput, flag_failure, unsupported_sample_format};
 
 const BUFFER_SECONDS: usize = 30;
 const FULL_BUFFER_POLL: Duration = Duration::from_millis(10);
@@ -58,10 +60,7 @@ impl Playback {
             SampleFormat::F32 => build_stream::<f32>(&device, &config, consumer, &failed),
             SampleFormat::I16 => build_stream::<i16>(&device, &config, consumer, &failed),
             SampleFormat::I32 => build_stream::<i32>(&device, &config, consumer, &failed),
-            _ => Err(cpal::Error::with_message(
-                cpal::ErrorKind::UnsupportedConfig,
-                "unsupported sample format",
-            )),
+            _ => Err(unsupported_sample_format()),
         }
         .map_err(open_error)?;
         stream.play().map_err(open_error)?;
@@ -108,15 +107,10 @@ where
     T: SizedSample + FromSample<f32>,
 {
     let channels = usize::from(config.channels);
-    let failed = Arc::clone(failed);
     device.build_output_stream(
         *config,
         move |data: &mut [T], _| fill_output(data, channels, &mut consumer),
-        move |error| {
-            if is_fatal(&error) {
-                failed.store(true, Ordering::Relaxed);
-            }
-        },
+        flag_failure(failed),
         None,
     )
 }

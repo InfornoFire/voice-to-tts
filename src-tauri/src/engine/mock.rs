@@ -9,12 +9,14 @@ use std::time::Duration;
 use super::{Engine, EngineError, EngineEvent, EngineState, EventSink, StateMachine, Transcript};
 use crate::audio::devices::AudioError;
 
+#[cfg(feature = "mock-engine")]
 const SENTENCES: &[&str] = &[
     "Hello this is a test sentence.",
     "One, two, three, four, five.",
     "Something something something.",
 ];
 
+#[cfg(feature = "mock-engine")]
 const PACING: Pacing = Pacing {
     load: Duration::from_millis(1200),
     gap: Duration::from_millis(2500),
@@ -62,6 +64,7 @@ pub struct MockEngine {
 }
 
 impl MockEngine {
+    #[cfg(feature = "mock-engine")]
     pub fn new(
         sink: Arc<dyn EventSink>,
         check_cable: impl Fn() -> Result<(), AudioError> + Send + Sync + 'static,
@@ -241,6 +244,7 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
+    use crate::engine::fakes::{next_event, state_changed, transcript};
 
     const FAST: Pacing = Pacing {
         load: Duration::from_millis(1),
@@ -255,23 +259,6 @@ mod tests {
         let (sender, events) = mpsc::channel();
         let engine = MockEngine::with_script(Arc::new(sender), || Ok(()), sentences, FAST);
         (engine, events)
-    }
-
-    fn next_event(events: &Receiver<EngineEvent>) -> EngineEvent {
-        events
-            .recv_timeout(Duration::from_secs(5))
-            .expect("the engine should keep producing events")
-    }
-
-    fn state_changed(state: EngineState) -> EngineEvent {
-        EngineEvent::StateChanged(state)
-    }
-
-    fn transcript(utterance_id: u32, text: &str) -> Transcript {
-        Transcript {
-            utterance_id,
-            text: text.to_owned(),
-        }
     }
 
     #[test]

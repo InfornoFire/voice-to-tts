@@ -81,9 +81,7 @@ function GuideView() {
               Play test sentence
             </button>
           </div>
-          {error && (
-            <ErrorBanner error={error} onAction={(action) => runErrorAction(action, error.code)} />
-          )}
+          {error && <ErrorBanner error={error} onAction={runErrorAction} />}
         </GuideStep>
         <button type="button" class="button button-primary guide-action" onClick={finishGuide}>
           Done

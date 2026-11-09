@@ -35,11 +35,12 @@ tauri-plugin-single-instance = "2"
 tauri-specta = { version = "=2.0.0-rc.26", features = ["derive", "typescript"] }
 thiserror = "2"
 ureq = { version = "3", default-features = false, features = ["rustls"] }
-windows = { version = "0.62", features = ["Win32_System_ProcessStatus", "Win32_System_Threading"] }
+windows = { version = "0.62", features = ["Win32_System_Threading"] }
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }
 tempfile = "3"
+windows = { version = "0.62", features = ["Win32_System_ProcessStatus"] }
 
 [profile.release]
 codegen-units = 1

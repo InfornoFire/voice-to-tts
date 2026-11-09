@@ -1,3 +1,5 @@
+//! Commands for the audio devices.
+
 use crate::audio::devices::{self, InputDevice};
 use crate::error::UserFacingError;
 

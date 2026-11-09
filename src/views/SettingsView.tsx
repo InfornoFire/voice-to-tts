@@ -79,7 +79,7 @@ function SettingsView() {
             label="CPU threads"
             value={String(current.threads)}
             options={THREAD_OPTIONS}
-            hint="Fewer threads leave more power for your games and calls, but speech may take longer."
+            hint="Fewer threads leave more for other applications, but speech may take longer."
             onChange={(count) => updateSettings({ threads: Number(count) })}
           />
           <HotkeyField

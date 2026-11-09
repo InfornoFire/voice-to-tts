@@ -7,8 +7,8 @@ mod manifest;
 
 use crate::download::DownloadError;
 
-pub use manager::{ModelManager, ModelsState, StateListener};
-pub use manifest::{Manifest, ManifestError, Voice};
+pub use manager::{ModelManager, ModelsState};
+pub use manifest::{Manifest, Voice};
 
 /// Failure to get the model files.
 #[derive(Debug, thiserror::Error)]

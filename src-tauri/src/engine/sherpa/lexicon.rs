@@ -1,3 +1,5 @@
+//! The words the voice can pronounce.
+
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;

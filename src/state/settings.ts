@@ -1,6 +1,7 @@
 import { signal } from "@preact/signals";
 
 import { type Config, type UserFacingError, commands, toUserFacingError, unwrap } from "../ipc";
+import { logFailure } from "../lib/log";
 import { config } from "./config";
 import { navigate } from "./view";
 
@@ -37,9 +38,7 @@ export function finishGuide() {
 
 /** Stops the global shortcut from switching the engine while a new one is being recorded. */
 export function pauseHotkey(paused: boolean) {
-  unwrap(commands.setHotkeyPaused(paused)).catch((error: unknown) =>
-    console.error("Failed to pause the shortcut.", error),
-  );
+  unwrap(commands.setHotkeyPaused(paused)).catch(logFailure("Failed to pause the shortcut."));
 }
 
 /** Saves the settings as shown now. */

@@ -1,6 +1,8 @@
 import { signal } from "@preact/signals";
 
 import { type ModelsState, type Voice, commands, events, toUserFacingError, unwrap } from "../ipc";
+import { logFailure } from "../lib/log";
+import { syncWithBackend } from "./sync";
 
 /** What the speech models are doing, or null until the backend has said. */
 export const modelsState = signal<ModelsState | null>(null);
@@ -10,17 +12,13 @@ export const voices = signal<Voice[]>([]);
 
 /** Keeps `modelsState` in step with the backend and loads the voices. */
 export async function syncModels() {
-  let receivedEvent = false;
-  await events.modelsStateChanged.listen((event) => {
-    receivedEvent = true;
-    modelsState.value = event.payload;
-  });
-
-  // Listening comes first so no change is missed, and the snapshot never overrides an event.
-  const snapshot = await commands.getModelsState();
-  if (!receivedEvent) {
-    modelsState.value = snapshot;
-  }
+  await syncWithBackend(
+    (handler) => events.modelsStateChanged.listen(handler),
+    () => commands.getModelsState(),
+    (state) => {
+      modelsState.value = state;
+    },
+  );
   voices.value = await commands.listVoices();
 }
 
@@ -39,7 +37,5 @@ export async function downloadModels(): Promise<boolean> {
 }
 
 export function cancelDownload() {
-  commands
-    .cancelModelsDownload()
-    .catch((error: unknown) => console.error("Failed to cancel the download.", error));
+  commands.cancelModelsDownload().catch(logFailure("Failed to cancel the download."));
 }

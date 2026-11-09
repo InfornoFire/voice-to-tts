@@ -1,3 +1,5 @@
+//! The listing of the model files and voices.
+
 use std::collections::HashSet;
 use std::path::{Component, Path};
 

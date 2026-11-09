@@ -1,3 +1,5 @@
+//! What the engine reports to the app, and who receives it.
+
 use std::sync::Arc;
 
 use serde::Serialize;

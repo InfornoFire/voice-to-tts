@@ -1,3 +1,5 @@
+//! What the engine needs from a speech recognizer.
+
 /// Recognizes speech in 16 kHz mono audio, one utterance at a time.
 pub trait Stt: Send {
     /// Feeds `samples` of the current utterance and returns the text recognized so far.

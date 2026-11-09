@@ -1,3 +1,5 @@
+//! Conversion between sample rates.
+
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
 use rubato::{Fft, FixedSync, Resampler};
 
@@ -5,6 +7,16 @@ use super::devices::AudioError;
 
 const CHUNK_FRAMES: usize = 1024;
 const SIZES_MATCH: &str = "the buffers are sized from what the resampler asks for";
+
+fn new_resampler(from_rate: u32, to_rate: u32) -> Result<Fft<f32>, AudioError> {
+    Ok(Fft::new(
+        from_rate as usize,
+        to_rate as usize,
+        CHUNK_FRAMES,
+        1,
+        FixedSync::Input,
+    )?)
+}
 
 /// Converts a stream of mono samples to another sample rate.
 pub struct StreamResampler {
@@ -15,13 +27,7 @@ pub struct StreamResampler {
 
 impl StreamResampler {
     pub fn new(from_rate: u32, to_rate: u32) -> Result<Self, AudioError> {
-        let inner = Fft::new(
-            from_rate as usize,
-            to_rate as usize,
-            CHUNK_FRAMES,
-            1,
-            FixedSync::Input,
-        )?;
+        let inner = new_resampler(from_rate, to_rate)?;
         let converted = vec![0.0; inner.output_frames_max()];
         Ok(Self {
             inner,
@@ -65,13 +71,7 @@ pub fn resample_clip(
         return Ok(samples.to_vec());
     }
 
-    let mut resampler = Fft::<f32>::new(
-        from_rate as usize,
-        to_rate as usize,
-        CHUNK_FRAMES,
-        1,
-        FixedSync::Input,
-    )?;
+    let mut resampler = new_resampler(from_rate, to_rate)?;
     let capacity = resampler.process_all_needed_output_len(samples.len());
     let mut converted = vec![0.0; capacity];
 

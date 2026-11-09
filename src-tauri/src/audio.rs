@@ -6,6 +6,9 @@ pub mod microphone;
 pub mod playback;
 pub mod resample;
 
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use devices::AudioError;
 
 /// A microphone delivering mono audio.
@@ -26,12 +29,25 @@ pub trait AudioOutput: Send {
     fn is_idle(&self) -> bool;
 }
 
-/// Whether a stream error means the stream is gone.
-fn is_fatal(error: &cpal::Error) -> bool {
+/// The error callback of a stream, which sets `failed` when an error means the stream is gone.
+fn flag_failure(failed: &Arc<AtomicBool>) -> impl FnMut(cpal::Error) + Send + 'static {
     use cpal::ErrorKind::{DeviceNotAvailable, HostUnavailable, StreamInvalidated};
-    matches!(
-        error.kind(),
-        DeviceNotAvailable | HostUnavailable | StreamInvalidated
+    let failed = Arc::clone(failed);
+    move |error| {
+        if matches!(
+            error.kind(),
+            DeviceNotAvailable | HostUnavailable | StreamInvalidated
+        ) {
+            failed.store(true, Ordering::Relaxed);
+        }
+    }
+}
+
+/// The error for a sample format that the streams cannot convert.
+fn unsupported_sample_format() -> cpal::Error {
+    cpal::Error::with_message(
+        cpal::ErrorKind::UnsupportedConfig,
+        "unsupported sample format",
     )
 }
 

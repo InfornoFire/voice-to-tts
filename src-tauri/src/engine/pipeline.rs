@@ -1,4 +1,4 @@
-//! The engine that turns microphone speech into speech on the virtual microphone.
+//! The default engine, which runs the speech models on this machine.
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
@@ -211,12 +211,9 @@ mod tests {
 
     use super::*;
     use crate::audio::devices::AudioError;
-    use crate::audio::resample::resample_clip;
-    use crate::download::HttpFetch;
-    use crate::engine::fakes::FakeResources;
-    use crate::engine::{EngineEvent, Heard, INPUT_SAMPLE_RATE, LocalResources, Transcript};
+    use crate::engine::EngineEvent;
+    use crate::engine::fakes::{FakeResources, next_event, state_changed, transcript};
     use crate::error::ErrorCode;
-    use crate::models::{Manifest, ModelManager, ModelsState};
 
     fn speech() -> Vec<f32> {
         vec![1.0; 10]
@@ -232,29 +229,12 @@ mod tests {
         (engine, events)
     }
 
-    fn next_event(events: &Receiver<EngineEvent>) -> EngineEvent {
-        events
-            .recv_timeout(Duration::from_secs(5))
-            .expect("the engine should keep producing events")
-    }
-
     fn expect_events(
         events: &Receiver<EngineEvent>,
         expected: impl IntoIterator<Item = EngineEvent>,
     ) {
         for event in expected {
             assert_eq!(next_event(events), event);
-        }
-    }
-
-    fn state_changed(state: EngineState) -> EngineEvent {
-        EngineEvent::StateChanged(state)
-    }
-
-    fn transcript(text: &str) -> Transcript {
-        Transcript {
-            utterance_id: 0,
-            text: text.to_owned(),
         }
     }
 
@@ -282,8 +262,8 @@ mod tests {
             [
                 state_changed(EngineState::Loading),
                 state_changed(EngineState::Listening),
-                EngineEvent::TranscriptPartial(transcript("Hello")),
-                EngineEvent::TranscriptFinal(transcript("Hello world")),
+                EngineEvent::TranscriptPartial(transcript(0, "Hello")),
+                EngineEvent::TranscriptFinal(transcript(0, "Hello world")),
                 state_changed(EngineState::Speaking),
                 state_changed(EngineState::Listening),
             ],
@@ -382,54 +362,6 @@ mod tests {
             assert_eq!(error_code(next_event(&events)), expected);
             assert!(!resources.microphone_open.load(Ordering::Relaxed));
         }
-    }
-
-    #[test]
-    #[ignore = "downloads the models to the models directory"]
-    fn downloaded_models_recognize_their_own_speech() {
-        let local_data = std::env::var_os("LOCALAPPDATA").expect("LOCALAPPDATA should be set");
-        let models_dir = std::path::PathBuf::from(local_data)
-            .join("com.inforno.voice-to-tts")
-            .join("models");
-        let manager = ModelManager::new(
-            models_dir,
-            Manifest::bundled(),
-            Box::new(HttpFetch::new()),
-            Box::new(|_| {}),
-        );
-        assert_eq!(manager.download(), ModelsState::Ready);
-        let mut models = LocalResources::new(manager.dir().to_owned(), manager.voices().to_vec())
-            .load_models(&Config::default())
-            .unwrap();
-
-        let sentence = "Hello there, this is a test of the voice proxy.";
-        let first_voice = manager.voices().first().unwrap();
-        let last_voice = manager.voices().last().unwrap();
-        let speech = models
-            .tts
-            .synthesize(sentence, &first_voice.id, 1.0)
-            .unwrap();
-        let other_speech = models
-            .tts
-            .synthesize(sentence, &last_voice.id, 1.0)
-            .unwrap();
-        assert_ne!(speech, other_speech);
-        let speech = resample_clip(&speech, models.tts.sample_rate(), INPUT_SAMPLE_RATE).unwrap();
-        let mut audio = vec![0.0; INPUT_SAMPLE_RATE as usize];
-        audio.extend(speech);
-        audio.extend(vec![0.0; 2 * INPUT_SAMPLE_RATE as usize]);
-
-        let mut listener = Listener::new(models.vad, models.stt);
-        let heard: Vec<_> = audio
-            .chunks(INPUT_SAMPLE_RATE as usize / 50)
-            .filter_map(|chunk| listener.accept(chunk))
-            .collect();
-
-        let Some(Heard::Final(text)) = heard.last() else {
-            panic!("no utterance ended: {heard:?}");
-        };
-        let text = text.to_lowercase();
-        assert!(text.contains("test") && text.contains("voice"), "{text}");
     }
 
     #[test]

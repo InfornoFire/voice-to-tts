@@ -1,10 +1,12 @@
+//! Checks files on disk against their listing.
+
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use super::RemoteFile;
+use super::{BUFFER_SIZE, RemoteFile};
 
 /// The lowercase hexadecimal text of a finished hash.
 pub fn hex_digest(hasher: Sha256) -> String {
@@ -28,7 +30,7 @@ pub fn is_intact(path: &Path, file: &RemoteFile) -> bool {
 fn hash_file(path: &Path) -> io::Result<String> {
     let mut file = File::open(path)?;
     let mut hasher = Sha256::new();
-    let mut buffer = vec![0; 64 * 1024];
+    let mut buffer = vec![0; BUFFER_SIZE];
     loop {
         let count = file.read(&mut buffer)?;
         if count == 0 {

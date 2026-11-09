@@ -1,3 +1,5 @@
+//! The seam between the engine and the machine it runs on.
+
 use super::{SpeechError, Stt, Tts, Vad};
 use crate::audio::devices::AudioError;
 use crate::audio::{AudioInput, AudioOutput};

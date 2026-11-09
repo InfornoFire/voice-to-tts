@@ -1,3 +1,5 @@
+//! Commands for the engine.
+
 use tauri::State;
 
 use crate::engine::EngineState;

@@ -1,3 +1,5 @@
+//! Captures audio from a microphone.
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -7,7 +9,7 @@ use ringbuf::traits::{Producer, Split};
 use ringbuf::{HeapCons, HeapProd, HeapRb};
 
 use super::devices::AudioError;
-use super::is_fatal;
+use super::{flag_failure, unsupported_sample_format};
 
 const BUFFER_SECONDS: usize = 2;
 
@@ -33,10 +35,7 @@ impl Capture {
             SampleFormat::F32 => build_stream::<f32>(device, &config, producer, &failed),
             SampleFormat::I16 => build_stream::<i16>(device, &config, producer, &failed),
             SampleFormat::I32 => build_stream::<i32>(device, &config, producer, &failed),
-            _ => Err(cpal::Error::with_message(
-                cpal::ErrorKind::UnsupportedConfig,
-                "unsupported sample format",
-            )),
+            _ => Err(unsupported_sample_format()),
         }
         .map_err(AudioError::OpenMic)?;
         stream.play().map_err(AudioError::OpenMic)?;
@@ -70,15 +69,10 @@ where
     f32: cpal::FromSample<T>,
 {
     let channels = usize::from(config.channels);
-    let failed = Arc::clone(failed);
     device.build_input_stream(
         *config,
         move |data: &[T], _| push_mono(&mut producer, data, channels),
-        move |error| {
-            if is_fatal(&error) {
-                failed.store(true, Ordering::Relaxed);
-            }
-        },
+        flag_failure(failed),
         None,
     )
 }

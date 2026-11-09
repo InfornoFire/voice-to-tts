@@ -1,3 +1,5 @@
+//! Commands for the settings.
+
 use tauri::State;
 
 use crate::config::Config;

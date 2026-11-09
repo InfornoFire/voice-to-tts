@@ -1,3 +1,5 @@
+//! What the engine needs from a speech synthesizer.
+
 use super::SpeechError;
 
 /// Turns text into speech.

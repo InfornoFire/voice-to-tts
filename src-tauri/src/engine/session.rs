@@ -1,3 +1,5 @@
+//! The threads of an engine that is on, one listening and one speaking.
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};

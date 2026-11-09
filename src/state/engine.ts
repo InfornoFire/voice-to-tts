@@ -2,8 +2,6 @@ import { computed, signal } from "@preact/signals";
 
 import {
   type EngineState,
-  type ErrorAction,
-  type ErrorCode,
   type UserFacingError,
   commands,
   events,
@@ -13,6 +11,7 @@ import {
 import { VB_CABLE_URL, openLink } from "../lib/links";
 import { cableError, checkCable } from "./devices";
 import { downloadModels } from "./models";
+import { syncWithBackend } from "./sync";
 import { navigate } from "./view";
 
 export const engineState = signal<EngineState>({ status: "off" });
@@ -41,18 +40,14 @@ export const activeError = computed(() => {
 });
 
 /** Keeps `engineState` in step with the backend. */
-export async function syncEngineState() {
-  let receivedEvent = false;
-  await events.stateChanged.listen((event) => {
-    receivedEvent = true;
-    engineState.value = event.payload;
-  });
-
-  // Listening comes first so no change is missed, and the snapshot never overrides an event.
-  const snapshot = await commands.getEngineState();
-  if (!receivedEvent) {
-    engineState.value = snapshot;
-  }
+export function syncEngineState() {
+  return syncWithBackend(
+    (handler) => events.stateChanged.listen(handler),
+    () => commands.getEngineState(),
+    (state) => {
+      engineState.value = state;
+    },
+  );
 }
 
 export function toggleEngine() {
@@ -78,8 +73,8 @@ export async function speakText(text: string): Promise<boolean> {
   }
 }
 
-/** Does what the button on an error offers. Restart has nothing to run yet. */
-export function runErrorAction(action: ErrorAction, code: ErrorCode) {
+/** Does what the button on `error` offers. */
+export function runErrorAction({ action, code }: UserFacingError) {
   if (action === "retry") {
     void retry();
   } else if (action === "pick_mic") {

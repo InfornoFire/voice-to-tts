@@ -1,8 +1,10 @@
+//! Turns text into speech.
+
 use std::path::Path;
 
 use sherpa_onnx::{
     GenerationConfig, OfflineTts, OfflineTtsConfig, OfflineTtsKittenModelConfig,
-    OfflineTtsKokoroModelConfig, OfflineTtsModelConfig,
+    OfflineTtsModelConfig,
 };
 
 use super::lexicon::Lexicon;
@@ -13,7 +15,7 @@ use crate::models::Voice;
 
 const MODEL_KIND: &str = "speech synthesis";
 
-/// Speech synthesis with a model that reads text through an English lexicon.
+/// Speech synthesis with the Kitten model, which reads text through an English lexicon.
 ///
 /// Words the lexicon lacks are spelled out or read as the words they are made of, because the
 /// model would skip them.
@@ -24,30 +26,6 @@ pub struct SherpaTts {
 }
 
 impl SherpaTts {
-    /// Loads the Kokoro model in `model_dir`, using at most `threads` threads.
-    ///
-    /// The first of the `voices` is the default.
-    pub fn kokoro(
-        model_dir: &Path,
-        lexicon: &Path,
-        voices: Vec<Voice>,
-        threads: u8,
-    ) -> Result<Self, SpeechError> {
-        let file = |name: &str| path_text(&model_dir.join(name), MODEL_KIND).map(Some);
-        let model = OfflineTtsModelConfig {
-            kokoro: OfflineTtsKokoroModelConfig {
-                model: file("model.int8.onnx")?,
-                voices: file("voices.bin")?,
-                tokens: file("tokens.txt")?,
-                lexicon: Some(path_text(lexicon, MODEL_KIND)?),
-                ..Default::default()
-            },
-            num_threads: i32::from(threads),
-            ..Default::default()
-        };
-        Self::create(model, lexicon, voices)
-    }
-
     /// Loads the Kitten model in `model_dir`, using at most `threads` threads.
     ///
     /// The first of the `voices` is the default.
@@ -58,34 +36,23 @@ impl SherpaTts {
         threads: u8,
     ) -> Result<Self, SpeechError> {
         let file = |name: &str| path_text(&model_dir.join(name), MODEL_KIND).map(Some);
-        let model = OfflineTtsModelConfig {
-            kitten: OfflineTtsKittenModelConfig {
-                model: file("model.int8.onnx")?,
-                voices: file("voices.bin")?,
-                tokens: file("tokens.txt")?,
-                lexicon: Some(path_text(lexicon, MODEL_KIND)?),
+        let config = OfflineTtsConfig {
+            model: OfflineTtsModelConfig {
+                kitten: OfflineTtsKittenModelConfig {
+                    model: file("model.int8.onnx")?,
+                    voices: file("voices.bin")?,
+                    tokens: file("tokens.txt")?,
+                    lexicon: Some(path_text(lexicon, MODEL_KIND)?),
+                    ..Default::default()
+                },
+                num_threads: i32::from(threads),
                 ..Default::default()
             },
-            num_threads: i32::from(threads),
             ..Default::default()
         };
-        Self::create(model, lexicon, voices)
-    }
-
-    fn create(
-        model: OfflineTtsModelConfig,
-        lexicon: &Path,
-        voices: Vec<Voice>,
-    ) -> Result<Self, SpeechError> {
-        let config = OfflineTtsConfig {
-            model,
-            ..Default::default()
-        };
-        let tts = OfflineTts::create(&config).ok_or(SpeechError::Load(MODEL_KIND))?;
-        let lexicon = Lexicon::load(lexicon, MODEL_KIND)?;
         Ok(Self {
-            tts,
-            lexicon,
+            tts: OfflineTts::create(&config).ok_or(SpeechError::Load(MODEL_KIND))?,
+            lexicon: Lexicon::load(lexicon, MODEL_KIND)?,
             voices,
         })
     }

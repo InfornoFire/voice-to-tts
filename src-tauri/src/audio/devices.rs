@@ -1,3 +1,5 @@
+//! Finding the audio devices and telling the virtual microphone from the others.
+
 use cpal::traits::{DeviceTrait, HostTrait};
 use cpal::{Device, DeviceId};
 use serde::Serialize;

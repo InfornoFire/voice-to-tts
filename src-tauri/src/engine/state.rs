@@ -1,3 +1,5 @@
+//! The state of the engine and the moves allowed between states.
+
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use serde::Serialize;

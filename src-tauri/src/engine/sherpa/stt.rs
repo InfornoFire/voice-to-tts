@@ -1,3 +1,5 @@
+//! Turns speech into text while it is being said.
+
 use std::path::Path;
 
 use sherpa_onnx::{OnlineRecognizer, OnlineRecognizerConfig, OnlineStream};

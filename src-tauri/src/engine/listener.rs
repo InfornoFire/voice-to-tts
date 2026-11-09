@@ -1,3 +1,5 @@
+//! Turns microphone audio into partial and final text.
+
 use std::collections::VecDeque;
 use std::mem;
 

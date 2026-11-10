@@ -10,6 +10,7 @@ const SAVE_DELAY_MS = 400;
 /** Limits of the settings, matching `config.rs`. */
 export const TTS_SPEED = { min: 0.5, max: 2, step: 0.1, fallback: 1 };
 export const THREAD_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8];
+export const SUBTITLES_PORT = { min: 1024, max: 65535 };
 
 /** Why the settings could not be saved. */
 export const settingsError = signal<UserFacingError | null>(null);

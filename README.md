@@ -14,6 +14,19 @@ Then pick `CABLE Output` as the microphone in your chat app (Discord, Zoom, Team
 
 You can also pick `CABLE Output` as the microphone of voice-to-tts itself, to speak what is sent into `CABLE Input`. It then plays the voice through your default audio output instead, so it does not hear itself.
 
+## Subtitles in OBS
+
+voice-to-tts can show the text the voice speaks as subtitles in OBS. Turn on "Show subtitles in OBS" in the settings, then in OBS:
+
+1. Add a Browser source and paste the address shown in the settings, `http://127.0.0.1:7421` by default.
+2. Set its width and height to a strip where the subtitles should go, such as 1920 by 300. The text sits at the bottom and the background is transparent.
+
+The subtitle appears when the voice starts speaking and fades 5 seconds after it stops. Add `?hold=10` to the address to keep it for 10 seconds instead. To restyle it, put CSS for `#subtitle` in the Custom CSS box of the source, for example `#subtitle { font-size: 64px; color: yellow; }`.
+
+- If OBS started before voice-to-tts, refresh the source with its "Refresh cache of current page" button.
+- If the text shows a little before or after the voice in the stream, change the Audio Sync Offset of the audio source in OBS (Advanced Audio Properties).
+- The page is only served on your own computer.
+
 ## Speech models
 
 Everything runs on your computer. The speech models (about 700 MB) are downloaded the first time the app starts and are stored in `%LOCALAPPDATA%\com.inforno.voice-to-tts\models`. [src-tauri/models.json](src-tauri/models.json) lists every file with its URL, size and SHA-256, and a download is only kept when it matches.

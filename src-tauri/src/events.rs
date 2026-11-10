@@ -49,6 +49,7 @@ impl<R: Runtime> EventSink for TauriEventSink<R> {
                 TranscriptPartial(transcript).emit(&self.app)
             }
             EngineEvent::TranscriptFinal(transcript) => TranscriptFinal(transcript).emit(&self.app),
+            EngineEvent::SpeechStarted(_) | EngineEvent::SpeechEnded => Ok(()),
         };
         // Nothing can be done about a webview that is gone, and the engine keeps running.
         let _ = delivered;

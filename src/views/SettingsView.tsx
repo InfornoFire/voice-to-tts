@@ -5,13 +5,16 @@ import CheckboxField from "../components/CheckboxField";
 import ErrorBanner from "../components/ErrorBanner";
 import HotkeyField from "../components/HotkeyField";
 import MicPicker from "../components/MicPicker";
+import NumberField from "../components/NumberField";
 import RangeField from "../components/RangeField";
+import ReadOnlyField from "../components/ReadOnlyField";
 import SelectField from "../components/SelectField";
 import ViewHeader from "../components/ViewHeader";
 import { config } from "../state/config";
 import { deviceError, inputDevices, isCableInstalled, refreshInputDevices } from "../state/devices";
 import { voices } from "../state/models";
 import {
+  SUBTITLES_PORT,
   THREAD_COUNTS,
   TTS_SPEED,
   pauseHotkey,
@@ -32,6 +35,8 @@ const HEAR_VOICE_HINT =
   "Also play the voice through your audio output. Without this, only the chat app hears it.";
 const ALWAYS_HEARD_HINT =
   "The voice has no virtual microphone to go to here, so it always plays through your audio output.";
+const SUBTITLES_HINT = "Lets an OBS browser source show the text the voice speaks.";
+const SUBTITLES_ADDRESS_HINT = "In OBS, add a Browser source and paste this address.";
 
 const closeSettings = () => navigate("main");
 
@@ -92,6 +97,28 @@ function SettingsView() {
             hint={voiceAlwaysHeard ? ALWAYS_HEARD_HINT : HEAR_VOICE_HINT}
             onChange={(hearVoice) => updateSettings({ hear_voice: hearVoice })}
           />
+          <CheckboxField
+            label="Show subtitles in OBS"
+            checked={current.subtitles_enabled}
+            hint={SUBTITLES_HINT}
+            onChange={(enabled) => updateSettings({ subtitles_enabled: enabled })}
+          />
+          {current.subtitles_enabled && (
+            <>
+              <NumberField
+                label="Subtitles port"
+                value={current.subtitles_port}
+                min={SUBTITLES_PORT.min}
+                max={SUBTITLES_PORT.max}
+                onChange={(port) => updateSettings({ subtitles_port: port })}
+              />
+              <ReadOnlyField
+                label="Browser source address"
+                value={`http://127.0.0.1:${current.subtitles_port}`}
+                hint={SUBTITLES_ADDRESS_HINT}
+              />
+            </>
+          )}
           <SelectField
             label="CPU threads"
             value={String(current.threads)}

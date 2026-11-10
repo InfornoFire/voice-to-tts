@@ -11,11 +11,13 @@ pub const MIN_THREADS: u8 = 1;
 pub const MAX_THREADS: u8 = 8;
 pub const MIN_TTS_SPEED: f32 = 0.5;
 pub const MAX_TTS_SPEED: f32 = 2.0;
+pub const MIN_SUBTITLES_PORT: u16 = 1024;
 
 const DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
 const DEFAULT_TTS_VOICE: &str = "default";
 const DEFAULT_TTS_SPEED: f32 = 1.0;
 const DEFAULT_THREADS: u8 = 2;
+const DEFAULT_SUBTITLES_PORT: u16 = 7421;
 
 /// Persisted user settings.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
@@ -31,6 +33,11 @@ pub struct Config {
     /// Whether the voice also plays through the audio output while it goes to the virtual
     /// microphone.
     pub hear_voice: bool,
+    /// Whether the spoken text is served to an OBS browser source.
+    pub subtitles_enabled: bool,
+    /// Port of the subtitles page, which is then at `http://127.0.0.1:<port>`. At least
+    /// [`MIN_SUBTITLES_PORT`].
+    pub subtitles_port: u16,
     /// Maximum number of inference threads, between [`MIN_THREADS`] and [`MAX_THREADS`].
     pub threads: u8,
     /// Whether the main window stays hidden on launch.
@@ -47,6 +54,8 @@ impl Default for Config {
             tts_voice: DEFAULT_TTS_VOICE.to_owned(),
             tts_speed: DEFAULT_TTS_SPEED,
             hear_voice: false,
+            subtitles_enabled: false,
+            subtitles_port: DEFAULT_SUBTITLES_PORT,
             threads: DEFAULT_THREADS,
             start_minimized: false,
             setup_guide_done: false,
@@ -75,6 +84,10 @@ impl Config {
             DEFAULT_TTS_SPEED
         };
         self.threads = self.threads.clamp(MIN_THREADS, MAX_THREADS);
+
+        if self.subtitles_port < MIN_SUBTITLES_PORT {
+            self.subtitles_port = DEFAULT_SUBTITLES_PORT;
+        }
         self
     }
 }
@@ -116,6 +129,25 @@ mod tests {
             };
 
             assert_eq!(config.normalized().tts_speed, DEFAULT_TTS_SPEED);
+        }
+    }
+
+    #[test]
+    fn a_subtitles_port_below_the_minimum_resets_to_the_default() {
+        let cases = [
+            (0, DEFAULT_SUBTITLES_PORT),
+            (MIN_SUBTITLES_PORT - 1, DEFAULT_SUBTITLES_PORT),
+            (MIN_SUBTITLES_PORT, MIN_SUBTITLES_PORT),
+            (u16::MAX, u16::MAX),
+        ];
+
+        for (subtitles_port, expected) in cases {
+            let config = Config {
+                subtitles_port,
+                ..Config::default()
+            };
+
+            assert_eq!(config.normalized().subtitles_port, expected);
         }
     }
 

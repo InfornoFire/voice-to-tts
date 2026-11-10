@@ -37,7 +37,7 @@ struct Pacing {
 enum Command {
     Enable,
     Disable,
-    Speak,
+    Speak(String),
 }
 
 enum Action {
@@ -102,11 +102,11 @@ impl Engine for MockEngine {
         Ok(())
     }
 
-    fn speak_text(&self, _text: &str) -> Result<(), EngineError> {
+    fn speak_text(&self, text: &str) -> Result<(), EngineError> {
         if !self.state.get().is_running() {
             return Err(EngineError::NotRunning);
         }
-        self.send(Command::Speak);
+        self.send(Command::Speak(text.to_owned()));
         Ok(())
     }
 
@@ -150,11 +150,15 @@ impl Worker {
             }
             Command::Disable => {
                 self.steps.clear();
+                if self.state.get() == EngineState::Speaking {
+                    self.sink.emit(EngineEvent::SpeechEnded);
+                }
                 self.state.transition(EngineState::Off);
             }
-            Command::Speak => {
+            Command::Speak(text) => {
                 if self.state.get().is_running() {
                     self.state.transition(EngineState::Speaking);
+                    self.sink.emit(EngineEvent::SpeechStarted(text));
                     self.steps.push_front(Step {
                         delay: self.pacing.speak,
                         action: Action::Spoken,
@@ -176,10 +180,13 @@ impl Worker {
                 self.sink.emit(EngineEvent::TranscriptPartial(transcript));
             }
             Action::Final(transcript) => {
+                let text = transcript.text.clone();
                 self.sink.emit(EngineEvent::TranscriptFinal(transcript));
                 self.state.transition(EngineState::Speaking);
+                self.sink.emit(EngineEvent::SpeechStarted(text));
             }
             Action::Spoken => {
+                self.sink.emit(EngineEvent::SpeechEnded);
                 self.state.transition(EngineState::Listening);
             }
         }
@@ -265,6 +272,8 @@ mod tests {
             EngineEvent::TranscriptPartial(transcript(0, "hello world")),
             EngineEvent::TranscriptFinal(transcript(0, "hello world")),
             state_changed(EngineState::Speaking),
+            EngineEvent::SpeechStarted("hello world".to_owned()),
+            EngineEvent::SpeechEnded,
             state_changed(EngineState::Listening),
             EngineEvent::TranscriptPartial(transcript(1, "hello")),
         ];
@@ -288,6 +297,11 @@ mod tests {
         engine.speak_text("hi").unwrap();
 
         assert_eq!(next_event(&events), state_changed(EngineState::Speaking));
+        assert_eq!(
+            next_event(&events),
+            EngineEvent::SpeechStarted("hi".to_owned())
+        );
+        assert_eq!(next_event(&events), EngineEvent::SpeechEnded);
         assert_eq!(next_event(&events), state_changed(EngineState::Listening));
     }
 }

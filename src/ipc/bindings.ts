@@ -9,7 +9,8 @@ export const commands = {
 	/**
 	 *  Saves `config` and returns the stored value.
 	 * 
-	 *  A new shortcut is registered first, so nothing is saved when it is unavailable.
+	 *  A new shortcut is registered and the subtitles server is started or stopped first, so nothing
+	 *  is saved when the shortcut or the server's port is unavailable.
 	 */
 	updateConfig: (config: Config) => typedError<Config, UserFacingError>(__TAURI_INVOKE("update_config", { config })),
 	/**  Whether the virtual microphone is installed. */
@@ -60,6 +61,13 @@ export type Config = {
 	 *  microphone.
 	 */
 	hear_voice: boolean,
+	/**  Whether the spoken text is served to an OBS browser source. */
+	subtitles_enabled: boolean,
+	/**
+	 *  Port of the subtitles page, which is then at `http://127.0.0.1:<port>`. At least
+	 *  [`MIN_SUBTITLES_PORT`].
+	 */
+	subtitles_port: number,
 	/**  Maximum number of inference threads, between [`MIN_THREADS`] and [`MAX_THREADS`]. */
 	threads: number,
 	/**  Whether the main window stays hidden on launch. */
@@ -79,7 +87,7 @@ export type EngineState = { status: "off" } |
 export type ErrorAction = "repair" | "pick_mic" | "retry";
 
 /**  Machine readable identifier of a failure. */
-export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "models_download_failed" | "speech_failed" | "hotkey_unavailable";
+export type ErrorCode = "config_save_failed" | "engine_off" | "cable_missing" | "mic_unavailable" | "audio_unavailable" | "models_unavailable" | "models_download_failed" | "speech_failed" | "hotkey_unavailable" | "subtitles_unavailable";
 
 /**  A microphone the user can pick. */
 export type InputDevice = {

@@ -9,6 +9,7 @@ use crate::download::DownloadError;
 use crate::engine::{EngineError, SpeechError};
 use crate::hotkey::HotkeyError;
 use crate::models::ModelsError;
+use crate::subtitles::SubtitlesError;
 
 /// Machine readable identifier of a failure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -23,6 +24,7 @@ pub enum ErrorCode {
     ModelsDownloadFailed,
     SpeechFailed,
     HotkeyUnavailable,
+    SubtitlesUnavailable,
 }
 
 /// The single recovery button the UI offers next to an error.
@@ -115,6 +117,18 @@ impl From<HotkeyError> for UserFacingError {
             HotkeyError::Unavailable(_) => Self {
                 code: ErrorCode::HotkeyUnavailable,
                 message: "That shortcut can't be used. Another app may already have it, so try a different one.".to_owned(),
+                action: None,
+            },
+        }
+    }
+}
+
+impl From<SubtitlesError> for UserFacingError {
+    fn from(error: SubtitlesError) -> Self {
+        match error {
+            SubtitlesError::Unavailable(_) => Self {
+                code: ErrorCode::SubtitlesUnavailable,
+                message: "That port can't be used for the subtitles. Another app may already be using it, so try a different one.".to_owned(),
                 action: None,
             },
         }

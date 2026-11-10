@@ -21,6 +21,10 @@ pub enum EngineEvent {
     StateChanged(EngineState),
     TranscriptPartial(Transcript),
     TranscriptFinal(Transcript),
+    /// The voice started playing this text.
+    SpeechStarted(String),
+    /// The voice finished playing the text of the last [`EngineEvent::SpeechStarted`].
+    SpeechEnded,
 }
 
 /// Receives the events an engine produces.

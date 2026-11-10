@@ -16,6 +16,7 @@ mod models;
 mod platform;
 mod shell;
 mod state;
+mod subtitles;
 mod tray;
 
 use std::sync::Arc;
@@ -30,6 +31,7 @@ use crate::events::TauriEventSink;
 use crate::hotkey::{GlobalHotkeys, Hotkeys};
 use crate::models::{Manifest, ModelManager};
 use crate::state::AppState;
+use crate::subtitles::Subtitles;
 
 /// The commands and events shared by the invoke handler and the TypeScript bindings.
 fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
@@ -139,15 +141,21 @@ pub fn run() {
             let config = Arc::new(ConfigStore::load(
                 app.path().app_config_dir()?.join("config.json"),
             ));
-            let hotkey = config.get().hotkey;
+            let stored = config.get();
+            let subtitles = Arc::new(Subtitles::default());
             let events = Arc::new(FanOutSink::new(vec![
                 Arc::new(TauriEventSink::new(app.handle().clone())),
                 Arc::new(tray::create(app.handle())?),
+                Arc::clone(&subtitles) as Arc<dyn EventSink>,
             ]));
             let hotkeys = GlobalHotkeys::new(app.handle().clone());
 
             // A shortcut that cannot be registered here can be replaced in the settings.
-            let _ = hotkeys.replace("", &hotkey);
+            let _ = hotkeys.replace("", &stored.hotkey);
+            // A port in use is reported when the user next saves the settings.
+            if let Err(error) = subtitles.apply(stored.subtitles_enabled, stored.subtitles_port) {
+                log::warn!("the subtitles server did not start: {error}");
+            }
 
             let models = Arc::new(create_models(app)?);
             app.manage(AppState {
@@ -155,6 +163,7 @@ pub fn run() {
                 config,
                 hotkeys: Box::new(hotkeys),
                 models,
+                subtitles,
             });
             Ok(())
         })

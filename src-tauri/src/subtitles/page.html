@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subtitles</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+      }
+
+      #subtitle {
+        box-sizing: border-box;
+        max-width: 90vw;
+        margin: 0 0 4vh;
+        color: #fff;
+        font:
+          700 48px/1.25 "Segoe UI",
+          system-ui,
+          sans-serif;
+        text-align: center;
+        text-shadow:
+          0 0 4px #000,
+          0 2px 4px #000,
+          2px 0 0 #000,
+          -2px 0 0 #000,
+          0 -2px 0 #000;
+        text-wrap: balance;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      #subtitle.visible {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="subtitle"></div>
+    <script>
+      const DEFAULT_HOLD_SECONDS = 5;
+
+      const subtitle = document.getElementById("subtitle");
+      const requestedHold = new URLSearchParams(location.search).get("hold");
+      const holdSeconds =
+        requestedHold !== null && requestedHold !== "" && Number(requestedHold) >= 0
+          ? Number(requestedHold)
+          : DEFAULT_HOLD_SECONDS;
+      let hideTimer;
+
+      const source = new EventSource("/events");
+
+      source.addEventListener("speaking", (event) => {
+        clearTimeout(hideTimer);
+        subtitle.textContent = JSON.parse(event.data).text;
+        subtitle.classList.add("visible");
+      });
+
+      source.addEventListener("ended", () => {
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => subtitle.classList.remove("visible"), holdSeconds * 1000);
+      });
+    </script>
+  </body>
+</html>

@@ -196,9 +196,11 @@ fn speak(
                     shared.fail(error.into());
                     return;
                 }
+                shared.sink.emit(EngineEvent::SpeechStarted(text));
                 while !output.is_idle() && !shared.is_stopped() {
                     thread::sleep(POLL_INTERVAL);
                 }
+                shared.sink.emit(EngineEvent::SpeechEnded);
             }
             Err(error) => log::warn!("could not turn text into speech: {error:?}"),
         }

@@ -280,6 +280,8 @@ mod tests {
                 EngineEvent::TranscriptPartial(transcript(0, "Hello")),
                 EngineEvent::TranscriptFinal(transcript(0, "Hello world")),
                 state_changed(EngineState::Speaking),
+                EngineEvent::SpeechStarted("Hello world".to_owned()),
+                EngineEvent::SpeechEnded,
                 state_changed(EngineState::Listening),
             ],
         );
@@ -351,6 +353,8 @@ mod tests {
             &events,
             [
                 state_changed(EngineState::Speaking),
+                EngineEvent::SpeechStarted("hi".to_owned()),
+                EngineEvent::SpeechEnded,
                 state_changed(EngineState::Listening),
             ],
         );

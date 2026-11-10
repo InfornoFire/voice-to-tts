@@ -14,7 +14,8 @@ pub fn get_config(state: State<'_, AppState>) -> Config {
 
 /// Saves `config` and returns the stored value.
 ///
-/// A new shortcut is registered first, so nothing is saved when it is unavailable.
+/// A new shortcut is registered and the subtitles server is started or stopped first, so nothing
+/// is saved when the shortcut or the server's port is unavailable.
 #[tauri::command]
 #[specta::specta]
 pub async fn update_config(
@@ -25,5 +26,8 @@ pub async fn update_config(
     state
         .hotkeys
         .replace(&state.config.get().hotkey, &config.hotkey)?;
+    state
+        .subtitles
+        .apply(config.subtitles_enabled, config.subtitles_port)?;
     Ok(state.config.update(config)?)
 }

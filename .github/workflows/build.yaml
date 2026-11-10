@@ -1,0 +1,96 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a draft release with the installers'
+        type: boolean
+        default: false
+
+permissions: {}
+
+env:
+  # Must match the sherpa-onnx version in Cargo.lock
+  SHERPA_ONNX_VERSION: '2.0.1'
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: 'Windows x64'
+            platform: 'windows-latest'
+            args: ''
+            assetNamePattern: '[name]-[version]-Windows-x64[setup][ext]'
+            sherpaTarget: 'win-x64-static-MT-Release'
+            sherpaSha256: '23e7b986b197eda0bbc47ff3d7d5c87afd6ef2b9077214ba26b0f1ec52ef0e66'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+        with:
+          cache: true
+          require-lockfile: true
+
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: './src-tauri -> target'
+          key: ${{ matrix.platform }}
+
+      - name: Download sherpa-onnx
+        shell: bash
+        env:
+          SHERPA_ONNX_TARGET: ${{ matrix.sherpaTarget }}
+          SHERPA_ONNX_SHA256: ${{ matrix.sherpaSha256 }}
+        run: |
+          directory="$RUNNER_TEMP/sherpa-onnx"
+          archive="sherpa-onnx-v${SHERPA_ONNX_VERSION}-${SHERPA_ONNX_TARGET}-lib.tar.bz2"
+          mkdir -p "$directory"
+          cd "$directory"
+          curl --fail --location --silent --show-error --output "$archive" \
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/v${SHERPA_ONNX_VERSION}/${archive}"
+          echo "${SHERPA_ONNX_SHA256}  ${archive}" | sha256sum --check
+          echo "SHERPA_ONNX_ARCHIVE_DIR=${directory}" >> "$GITHUB_ENV"
+
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
+        id: tauri
+        env:
+          GITHUB_TOKEN: ${{ inputs.release && secrets.GITHUB_TOKEN || '' }}
+        with:
+          args: ${{ matrix.args }}
+          uploadWorkflowArtifacts: true
+          tagName: ${{ inputs.release && 'v__VERSION__' || '' }}
+          releaseName: ${{ inputs.release && 'v__VERSION__' || '' }}
+          releaseDraft: ${{ inputs.release }}
+          releaseAssetNamePattern: ${{ matrix.assetNamePattern }}
+
+      - name: Get artifact paths
+        id: artifacts
+        shell: bash
+        env:
+          ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
+        run: |
+          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$ARTIFACT_PATHS" | jq -r '.[]' >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.artifacts.outputs.paths }}

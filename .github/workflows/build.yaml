@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: 'Create a draft release with the installers'
+        description: "Create a draft release with the installers"
         type: boolean
         default: false
 
@@ -12,7 +12,7 @@ permissions: {}
 
 env:
   # Must match the sherpa-onnx version in Cargo.lock
-  SHERPA_ONNX_VERSION: '2.0.1'
+  SHERPA_ONNX_VERSION: "2.0.1"
 
 jobs:
   build:
@@ -28,12 +28,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: 'Windows x64'
-            platform: 'windows-latest'
-            args: ''
-            assetNamePattern: '[name]-[version]-Windows-x64[setup][ext]'
-            sherpaTarget: 'win-x64-static-MT-Release'
-            sherpaSha256: '23e7b986b197eda0bbc47ff3d7d5c87afd6ef2b9077214ba26b0f1ec52ef0e66'
+          - name: "Windows x64"
+            platform: "windows-latest"
+            args: ""
+            assetNamePattern: "[name]-[version]-Windows-x64[setup][ext]"
+            sherpaTarget: "win-x64-static-MT-Release"
+            sherpaSha256: "23e7b986b197eda0bbc47ff3d7d5c87afd6ef2b9077214ba26b0f1ec52ef0e66"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,7 +50,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
           key: ${{ matrix.platform }}
 
       - name: Download sherpa-onnx

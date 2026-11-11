@@ -4,11 +4,13 @@ import "./SpeakBox.css";
 
 interface SpeakBoxProps {
   disabled: boolean;
+  /** Shown in place of the prompt while the box is disabled. */
+  disabledReason: string;
   /** Resolves with whether the text was accepted, so only then is the box cleared. */
   onSpeak: (text: string) => Promise<boolean>;
 }
 
-function SpeakBox({ disabled, onSpeak }: SpeakBoxProps) {
+function SpeakBox({ disabled, disabledReason, onSpeak }: SpeakBoxProps) {
   const [text, setText] = useState("");
   const message = text.trim();
 
@@ -31,7 +33,7 @@ function SpeakBox({ disabled, onSpeak }: SpeakBoxProps) {
         type="text"
         value={text}
         disabled={disabled}
-        placeholder={disabled ? "Turn the switch on to type a message" : "Type something to say"}
+        placeholder={disabled ? disabledReason : "Type something to say"}
         aria-label="Message to speak"
         onInput={(event) => setText(event.currentTarget.value)}
       />

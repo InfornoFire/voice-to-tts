@@ -28,6 +28,13 @@ pub fn toggle_engine<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+/// Cancels the speech from outside the window.
+pub fn cancel_speech<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(state) = app.try_state::<AppState>() {
+        state.engine.cancel_speech();
+    }
+}
+
 /// Hides the main window, and the app keeps running in the tray.
 pub fn hide_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW) {

@@ -23,6 +23,8 @@ pub struct Playback {
     producer: HeapProd<f32>,
     sample_rate: u32,
     failed: Arc<AtomicBool>,
+    /// Asks the stream to drop what is queued, because only the stream can read the buffer.
+    flush: Arc<AtomicBool>,
     lost: fn() -> AudioError,
 }
 
@@ -55,11 +57,12 @@ impl Playback {
         let capacity = config.sample_rate as usize * BUFFER_SECONDS;
         let (producer, consumer) = HeapRb::<f32>::new(capacity).split();
         let failed = Arc::new(AtomicBool::new(false));
+        let flush = Arc::new(AtomicBool::new(false));
 
         let stream = match supported.sample_format() {
-            SampleFormat::F32 => build_stream::<f32>(&device, &config, consumer, &failed),
-            SampleFormat::I16 => build_stream::<i16>(&device, &config, consumer, &failed),
-            SampleFormat::I32 => build_stream::<i32>(&device, &config, consumer, &failed),
+            SampleFormat::F32 => build_stream::<f32>(&device, &config, consumer, &failed, &flush),
+            SampleFormat::I16 => build_stream::<i16>(&device, &config, consumer, &failed, &flush),
+            SampleFormat::I32 => build_stream::<i32>(&device, &config, consumer, &failed, &flush),
             _ => Err(unsupported_sample_format()),
         }
         .map_err(open_error)?;
@@ -70,6 +73,7 @@ impl Playback {
             producer,
             sample_rate: config.sample_rate,
             failed,
+            flush,
             lost,
         })
     }
@@ -95,6 +99,12 @@ impl AudioOutput for Playback {
     fn is_idle(&self) -> bool {
         self.producer.is_empty()
     }
+
+    /// The queue is emptied by the stream on its next callback, which is only a few milliseconds
+    /// away.
+    fn stop(&mut self) {
+        self.flush.store(true, Ordering::Relaxed);
+    }
 }
 
 fn build_stream<T>(
@@ -102,24 +112,35 @@ fn build_stream<T>(
     config: &StreamConfig,
     mut consumer: HeapCons<f32>,
     failed: &Arc<AtomicBool>,
+    flush: &Arc<AtomicBool>,
 ) -> Result<Stream, cpal::Error>
 where
     T: SizedSample + FromSample<f32>,
 {
     let channels = usize::from(config.channels);
+    let flush = Arc::clone(flush);
     device.build_output_stream(
         *config,
-        move |data: &mut [T], _| fill_output(data, channels, &mut consumer),
+        move |data: &mut [T], _| fill_output(data, channels, &mut consumer, &flush),
         flag_failure(failed),
         None,
     )
 }
 
 /// Writes each queued sample to every channel of a frame, and silence when the queue runs dry.
-fn fill_output<T>(data: &mut [T], channels: usize, consumer: &mut impl Consumer<Item = f32>)
-where
+///
+/// A request to flush drops the queue first.
+fn fill_output<T>(
+    data: &mut [T],
+    channels: usize,
+    consumer: &mut impl Consumer<Item = f32>,
+    flush: &AtomicBool,
+) where
     T: SizedSample + FromSample<f32>,
 {
+    if flush.swap(false, Ordering::Relaxed) {
+        consumer.clear();
+    }
     for frame in data.chunks_exact_mut(channels) {
         frame.fill(T::from_sample(consumer.try_pop().unwrap_or(0.0)));
     }
@@ -135,8 +156,22 @@ mod tests {
         producer.push_slice(&[0.5, 0.25]);
         let mut output = [1.0_f32; 6];
 
-        fill_output(&mut output, 2, &mut consumer);
+        fill_output(&mut output, 2, &mut consumer, &AtomicBool::new(false));
 
         assert_eq!(output, [0.5, 0.5, 0.25, 0.25, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn a_flush_drops_the_queue_once() {
+        let (mut producer, mut consumer) = HeapRb::<f32>::new(4).split();
+        producer.push_slice(&[0.5, 0.25]);
+        let flush = AtomicBool::new(true);
+        let mut output = [1.0_f32; 2];
+
+        fill_output(&mut output, 1, &mut consumer, &flush);
+
+        assert_eq!(output, [0.0, 0.0]);
+        assert!(producer.is_empty());
+        assert!(!flush.load(Ordering::Relaxed));
     }
 }

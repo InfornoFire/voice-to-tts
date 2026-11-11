@@ -58,6 +58,15 @@ impl Listener {
         heard
     }
 
+    /// Drops the utterance being heard and the audio kept from before it, without reporting it.
+    pub fn reset(&mut self) {
+        self.vad.reset();
+        self.stt.reset();
+        self.lead_in.clear();
+        self.speaking = false;
+        self.partial_text.clear();
+    }
+
     fn partial(&mut self, samples: &[f32]) -> Option<Heard> {
         let text = tidy(&self.stt.accept(samples));
         if text.is_empty() || text == self.partial_text {
@@ -123,6 +132,21 @@ mod tests {
         let partial = Heard::Partial("Hello".to_owned());
         let last = Heard::Final("Hello world".to_owned());
         assert_eq!(results, [None, Some(partial), None, Some(last), None]);
+    }
+
+    #[test]
+    fn a_reset_drops_the_utterance_being_heard() {
+        let (mut listener, heard) = listener();
+        listener.accept(&speech());
+
+        listener.reset();
+
+        assert_eq!(listener.accept(&silence()), None);
+        assert_eq!(count(&heard, 0.0), 0);
+        assert_eq!(
+            listener.accept(&speech()),
+            Some(Heard::Partial("Hello".to_owned()))
+        );
     }
 
     #[test]

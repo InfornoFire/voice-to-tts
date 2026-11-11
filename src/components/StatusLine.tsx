@@ -9,6 +9,7 @@ const LABELS: Record<Status, string> = {
   loading: "Getting ready…",
   listening: "Listening",
   speaking: "Speaking",
+  paused: "Paused",
   error: "Needs attention",
 };
 

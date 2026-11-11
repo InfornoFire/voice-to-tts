@@ -20,6 +20,13 @@ pub async fn speak_text(state: State<'_, AppState>, text: String) -> Result<(), 
     Ok(state.engine.speak_text(&text)?)
 }
 
+/// Stops the voice and pauses listening for a moment. Does nothing unless the engine is running.
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_speech(state: State<'_, AppState>) {
+    state.engine.cancel_speech();
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn get_engine_state(state: State<'_, AppState>) -> EngineState {

@@ -65,6 +65,12 @@ pub trait Engine: Send + Sync {
     /// Speaks `text` as if it had been said into the microphone.
     fn speak_text(&self, text: &str) -> Result<(), EngineError>;
 
+    /// Stops the voice and drops the speech that is queued and the sentence being heard, then
+    /// ignores the microphone and typed text for a moment.
+    ///
+    /// Does nothing unless the engine is running.
+    fn cancel_speech(&self);
+
     fn state(&self) -> EngineState;
 
     /// Switches the engine off when it is on and on when it is off.

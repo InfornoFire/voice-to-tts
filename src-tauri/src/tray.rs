@@ -70,6 +70,7 @@ fn tooltip(state: &EngineState) -> &'static str {
         EngineState::Loading => "voice-to-tts: Getting ready",
         EngineState::Listening => "voice-to-tts: Listening",
         EngineState::Speaking => "voice-to-tts: Speaking",
+        EngineState::Paused => "voice-to-tts: Paused",
         EngineState::Error(_) => "voice-to-tts: Needs attention",
     }
 }

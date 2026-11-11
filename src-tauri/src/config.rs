@@ -14,6 +14,7 @@ pub const MAX_TTS_SPEED: f32 = 2.0;
 pub const MIN_SUBTITLES_PORT: u16 = 1024;
 
 const DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
+const DEFAULT_CANCEL_HOTKEY: &str = "Ctrl+Alt+X";
 const DEFAULT_TTS_VOICE: &str = "default";
 const DEFAULT_TTS_SPEED: f32 = 1.0;
 const DEFAULT_THREADS: u8 = 2;
@@ -56,6 +57,9 @@ pub struct Config {
     pub input_device: Option<String>,
     /// Global shortcut that toggles the engine. An empty value disables the shortcut.
     pub hotkey: String,
+    /// Global shortcut that stops the voice and pauses listening for a moment. An empty value
+    /// disables the shortcut.
+    pub cancel_hotkey: String,
     /// Name of the text to speech voice.
     pub tts_voice: String,
     /// Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`].
@@ -83,6 +87,7 @@ impl Default for Config {
         Self {
             input_device: None,
             hotkey: DEFAULT_HOTKEY.to_owned(),
+            cancel_hotkey: DEFAULT_CANCEL_HOTKEY.to_owned(),
             tts_voice: DEFAULT_TTS_VOICE.to_owned(),
             tts_speed: DEFAULT_TTS_SPEED,
             hear_voice: false,
@@ -103,6 +108,7 @@ impl Config {
             .input_device
             .filter(|device_id| !device_id.trim().is_empty());
         self.hotkey = self.hotkey.trim().to_owned();
+        self.cancel_hotkey = self.cancel_hotkey.trim().to_owned();
 
         let voice = self.tts_voice.trim();
         self.tts_voice = if voice.is_empty() {
@@ -195,6 +201,7 @@ mod tests {
         .normalized();
         let padded = Config {
             hotkey: " Ctrl+Shift+T ".to_owned(),
+            cancel_hotkey: " Ctrl+Shift+C ".to_owned(),
             tts_voice: " amy ".to_owned(),
             ..Config::default()
         }
@@ -204,6 +211,7 @@ mod tests {
         assert_eq!(blank.hotkey, "");
         assert_eq!(blank.tts_voice, DEFAULT_TTS_VOICE);
         assert_eq!(padded.hotkey, "Ctrl+Shift+T");
+        assert_eq!(padded.cancel_hotkey, "Ctrl+Shift+C");
         assert_eq!(padded.tts_voice, "amy");
     }
 }

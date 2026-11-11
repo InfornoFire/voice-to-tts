@@ -119,6 +119,11 @@ impl From<HotkeyError> for UserFacingError {
                 message: "That shortcut can't be used. Another app may already have it, so try a different one.".to_owned(),
                 action: None,
             },
+            HotkeyError::Duplicate => Self {
+                code: ErrorCode::HotkeyUnavailable,
+                message: "Both shortcuts are the same. Pick a different one for each.".to_owned(),
+                action: None,
+            },
         }
     }
 }

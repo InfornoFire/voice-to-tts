@@ -28,7 +28,7 @@ use crate::config::ConfigStore;
 use crate::download::HttpFetch;
 use crate::engine::{Engine, EventSink, FanOutSink};
 use crate::events::TauriEventSink;
-use crate::hotkey::{GlobalHotkeys, Hotkeys};
+use crate::hotkey::GlobalHotkeys;
 use crate::models::{Manifest, ModelManager};
 use crate::shell::AppShell;
 use crate::state::AppState;
@@ -43,6 +43,7 @@ fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
             commands::config::update_config,
             commands::devices::is_cable_installed,
             commands::devices::list_input_devices,
+            commands::engine::cancel_speech,
             commands::engine::get_engine_state,
             commands::engine::set_enabled,
             commands::engine::speak_text,
@@ -154,7 +155,7 @@ pub fn run() {
             let hotkeys = GlobalHotkeys::new(app.handle().clone());
 
             // A shortcut that cannot be registered here can be replaced in the settings.
-            let _ = hotkeys.replace("", &stored.hotkey);
+            let _ = hotkey::register_all(&hotkeys, &stored);
             // A port in use is reported when the user next saves the settings.
             if let Err(error) = subtitles.apply(stored.subtitles_enabled, stored.subtitles_port) {
                 log::warn!("the subtitles server did not start: {error}");

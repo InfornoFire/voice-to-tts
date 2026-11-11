@@ -70,6 +70,11 @@
         clearTimeout(hideTimer);
         hideTimer = setTimeout(() => subtitle.classList.remove("visible"), holdSeconds * 1000);
       });
+
+      source.addEventListener("cancelled", () => {
+        clearTimeout(hideTimer);
+        subtitle.classList.remove("visible");
+      });
     </script>
   </body>
 </html>

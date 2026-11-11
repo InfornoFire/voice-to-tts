@@ -21,6 +21,7 @@ const PACING: Pacing = Pacing {
     gap: Duration::from_millis(2500),
     word: Duration::from_millis(350),
     speak: Duration::from_millis(1500),
+    pause: Duration::from_secs(3),
 };
 
 /// How long each part of the script takes.
@@ -32,12 +33,15 @@ struct Pacing {
     /// Time between the words of an utterance.
     word: Duration,
     speak: Duration,
+    /// How long the engine is paused after speech is cancelled.
+    pause: Duration,
 }
 
 enum Command {
     Enable,
     Disable,
     Speak(String),
+    Cancel,
 }
 
 enum Action {
@@ -45,6 +49,7 @@ enum Action {
     Partial(Transcript),
     Final(Transcript),
     Spoken,
+    Resumed,
 }
 
 /// An action that runs once `delay` has passed without a new command.
@@ -110,6 +115,10 @@ impl Engine for MockEngine {
         Ok(())
     }
 
+    fn cancel_speech(&self) {
+        self.send(Command::Cancel);
+    }
+
     fn state(&self) -> EngineState {
         self.state.get()
     }
@@ -165,6 +174,17 @@ impl Worker {
                     });
                 }
             }
+            Command::Cancel => {
+                let state = self.state.get();
+                if state.is_running() {
+                    self.steps.clear();
+                    if state == EngineState::Speaking {
+                        self.sink.emit(EngineEvent::SpeechCancelled);
+                    }
+                    self.state.transition(EngineState::Paused);
+                    self.queue(self.pacing.pause, Action::Resumed);
+                }
+            }
         }
     }
 
@@ -188,6 +208,10 @@ impl Worker {
             Action::Spoken => {
                 self.sink.emit(EngineEvent::SpeechEnded);
                 self.state.transition(EngineState::Listening);
+            }
+            Action::Resumed => {
+                self.state
+                    .transition_from(&EngineState::Paused, EngineState::Listening);
             }
         }
 
@@ -245,13 +269,21 @@ mod tests {
         gap: Duration::from_millis(1),
         word: Duration::from_millis(1),
         speak: Duration::from_millis(1),
+        pause: Duration::from_millis(1),
     };
 
     fn engine_with_script(
         sentences: &'static [&'static str],
     ) -> (MockEngine, Receiver<EngineEvent>) {
+        engine_with_pacing(sentences, FAST)
+    }
+
+    fn engine_with_pacing(
+        sentences: &'static [&'static str],
+        pacing: Pacing,
+    ) -> (MockEngine, Receiver<EngineEvent>) {
         let (sender, events) = mpsc::channel();
-        let engine = MockEngine::with_script(Arc::new(sender), sentences, FAST);
+        let engine = MockEngine::with_script(Arc::new(sender), sentences, pacing);
         (engine, events)
     }
 
@@ -302,6 +334,30 @@ mod tests {
             EngineEvent::SpeechStarted("hi".to_owned())
         );
         assert_eq!(next_event(&events), EngineEvent::SpeechEnded);
+        assert_eq!(next_event(&events), state_changed(EngineState::Listening));
+    }
+
+    #[test]
+    fn cancelling_stops_the_voice_and_pauses_for_a_moment() {
+        let slow_speech = Pacing {
+            speak: Duration::from_secs(30),
+            ..FAST
+        };
+        let (engine, events) = engine_with_pacing(&[], slow_speech);
+        engine.set_enabled(true).unwrap();
+        assert_eq!(next_event(&events), state_changed(EngineState::Loading));
+        assert_eq!(next_event(&events), state_changed(EngineState::Listening));
+        engine.speak_text("hi").unwrap();
+        assert_eq!(next_event(&events), state_changed(EngineState::Speaking));
+        assert_eq!(
+            next_event(&events),
+            EngineEvent::SpeechStarted("hi".to_owned())
+        );
+
+        engine.cancel_speech();
+
+        assert_eq!(next_event(&events), EngineEvent::SpeechCancelled);
+        assert_eq!(next_event(&events), state_changed(EngineState::Paused));
         assert_eq!(next_event(&events), state_changed(EngineState::Listening));
     }
 }

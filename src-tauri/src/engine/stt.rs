@@ -7,4 +7,7 @@ pub trait Stt: Send {
 
     /// Ends the current utterance, returning its final text, and readies the next one.
     fn finish(&mut self) -> String;
+
+    /// Drops the current utterance without recognizing the rest of it.
+    fn reset(&mut self);
 }

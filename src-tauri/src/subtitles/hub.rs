@@ -10,6 +10,8 @@ pub enum Message {
     Speaking(String),
     /// The voice stopped playing.
     Ended,
+    /// The voice was stopped before it finished, so the text should go away at once.
+    Cancelled,
 }
 
 #[derive(Default)]
@@ -30,7 +32,7 @@ impl Hub {
         let mut inner = self.lock();
         inner.current = match &message {
             Message::Speaking(text) => Some(text.clone()),
-            Message::Ended => None,
+            Message::Ended | Message::Cancelled => None,
         };
         inner
             .subscribers

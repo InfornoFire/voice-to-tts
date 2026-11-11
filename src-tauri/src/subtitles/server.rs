@@ -218,6 +218,7 @@ fn format_event(message: &Message) -> String {
             )
         }
         Message::Ended => "event: ended\ndata: {}\n\n".to_owned(),
+        Message::Cancelled => "event: cancelled\ndata: {}\n\n".to_owned(),
     }
 }
 
@@ -327,6 +328,9 @@ mod tests {
 
         hub.publish(Message::Ended);
         early.wait_for("event: ended\ndata: {}\n\n");
+
+        hub.publish(Message::Cancelled);
+        early.wait_for("event: cancelled\ndata: {}\n\n");
 
         drop(server);
         assert_eq!(early.read_to_close(), "");

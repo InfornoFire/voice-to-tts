@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
+use std::time::Duration;
 
 use super::session::{Parts, Session, Settings};
 use super::{
@@ -12,10 +13,14 @@ use super::{
 use crate::audio::fan_out::FanOutOutput;
 use crate::config::Config;
 
+/// How long the microphone and typed text are ignored after speech is cancelled.
+const CANCEL_PAUSE: Duration = Duration::from_secs(3);
+
 enum Command {
     Enable,
     Disable,
     Speak(String),
+    Cancel,
     /// A running session could not continue.
     Fault {
         session: u32,
@@ -40,6 +45,16 @@ impl PipelineEngine {
         resources: impl Resources + 'static,
         settings: impl Fn() -> Config + Send + Sync + 'static,
     ) -> Self {
+        Self::with_cancel_pause(sink, resources, settings, CANCEL_PAUSE)
+    }
+
+    /// Like [`PipelineEngine::new`], with the pause after a cancel chosen, so tests stay short.
+    fn with_cancel_pause(
+        sink: Arc<dyn EventSink>,
+        resources: impl Resources + 'static,
+        settings: impl Fn() -> Config + Send + Sync + 'static,
+        cancel_pause: Duration,
+    ) -> Self {
         let state = Arc::new(StateMachine::new(Arc::clone(&sink)));
         let (commands, receiver) = mpsc::channel();
         let worker = Worker {
@@ -48,6 +63,7 @@ impl PipelineEngine {
             resources: Arc::new(resources),
             settings: Arc::new(settings),
             utterance_ids: Arc::new(AtomicU32::new(0)),
+            cancel_pause,
             commands: commands.clone(),
             running: None,
             sessions_started: 0,
@@ -77,6 +93,10 @@ impl Engine for PipelineEngine {
         }
         self.send(Command::Speak(text.to_owned()));
         Ok(())
+    }
+
+    fn cancel_speech(&self) {
+        self.send(Command::Cancel);
     }
 
     fn state(&self) -> EngineState {
@@ -118,6 +138,7 @@ struct Worker {
     resources: Arc<dyn Resources>,
     settings: Settings,
     utterance_ids: Arc<AtomicU32>,
+    cancel_pause: Duration,
     commands: Sender<Command>,
     running: Option<Running>,
     sessions_started: u32,
@@ -132,6 +153,11 @@ impl Worker {
                 Command::Speak(text) => {
                     if let Some(running) = &self.running {
                         running.session.say(text);
+                    }
+                }
+                Command::Cancel => {
+                    if let Some(running) = &self.running {
+                        running.session.cancel();
                     }
                 }
                 Command::Fault { session, error } => {
@@ -206,6 +232,7 @@ impl Worker {
             sink: Arc::clone(&self.sink),
             settings: Arc::clone(&self.settings),
             utterance_ids: Arc::clone(&self.utterance_ids),
+            cancel_pause: self.cancel_pause,
             on_fault: Box::new(move |error| {
                 let _ = commands.send(Command::Fault { session: id, error });
             }),
@@ -359,6 +386,50 @@ mod tests {
             ],
         );
         assert_eq!(*resources.played.lock().unwrap(), [vec![0.5; 2]]);
+    }
+
+    #[test]
+    fn cancelling_stops_the_clip_and_ignores_input_for_a_moment() {
+        let resources = FakeResources::default();
+        resources.output_idle.store(false, Ordering::Relaxed);
+        resources
+            .heard
+            .lock()
+            .unwrap()
+            .extend([speech(), speech(), silence()]);
+        let (sender, events) = mpsc::channel();
+        let engine = PipelineEngine::with_cancel_pause(
+            Arc::new(sender),
+            resources.clone(),
+            Config::default,
+            Duration::from_millis(300),
+        );
+        engine.set_enabled(true).unwrap();
+        expect_events(
+            &events,
+            [
+                state_changed(EngineState::Loading),
+                state_changed(EngineState::Listening),
+                EngineEvent::TranscriptPartial(transcript(0, "Hello")),
+                EngineEvent::TranscriptFinal(transcript(0, "Hello world")),
+                state_changed(EngineState::Speaking),
+                EngineEvent::SpeechStarted("Hello world".to_owned()),
+            ],
+        );
+
+        engine.cancel_speech();
+
+        // The two threads report in either order.
+        let reported = [next_event(&events), next_event(&events)];
+        assert!(reported.contains(&EngineEvent::SpeechCancelled));
+        assert!(reported.contains(&state_changed(EngineState::Paused)));
+        assert!(matches!(
+            engine.speak_text("hi"),
+            Err(EngineError::NotRunning)
+        ));
+        expect_events(&events, [state_changed(EngineState::Listening)]);
+        assert_eq!(resources.stops.load(Ordering::Relaxed), 1);
+        assert_eq!(resources.played.lock().unwrap().len(), 1);
     }
 
     #[test]

@@ -3,7 +3,7 @@
 //! Audio is speech where its first sample is positive and silence where it is zero.
 
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -40,6 +40,8 @@ impl Vad for LoudnessVad {
     fn accept(&mut self, samples: &[f32]) -> bool {
         samples[0] > 0.0
     }
+
+    fn reset(&mut self) {}
 }
 
 /// Recognizes the same words in any audio and records what it is given.
@@ -57,6 +59,10 @@ impl Stt for RecordingStt {
     fn finish(&mut self) -> String {
         self.heard.lock().unwrap().clear();
         " Hello  world".to_owned()
+    }
+
+    fn reset(&mut self) {
+        self.heard.lock().unwrap().clear();
     }
 }
 
@@ -91,6 +97,10 @@ pub struct FakeResources {
     pub microphone_lost: Arc<AtomicBool>,
     pub microphone_open: Arc<AtomicBool>,
     pub played: Arc<Mutex<Vec<Vec<f32>>>>,
+    /// Whether the outputs report that they finished playing. Playing never finishes when unset.
+    pub output_idle: Arc<AtomicBool>,
+    /// How many times the outputs were stopped.
+    pub stops: Arc<AtomicUsize>,
     /// Where speech was asked to be played, one entry for each output that was opened.
     pub outputs: Arc<Mutex<Vec<OutputTarget>>>,
 }
@@ -106,6 +116,8 @@ impl Default for FakeResources {
             microphone_lost: Arc::default(),
             microphone_open: Arc::default(),
             played: Arc::default(),
+            output_idle: Arc::new(AtomicBool::new(true)),
+            stops: Arc::default(),
             outputs: Arc::default(),
         }
     }
@@ -139,6 +151,8 @@ impl Resources for FakeResources {
         self.outputs.lock().unwrap().push(target);
         Ok(Box::new(FakeOutput {
             played: Arc::clone(&self.played),
+            idle: Arc::clone(&self.output_idle),
+            stops: Arc::clone(&self.stops),
         }))
     }
 
@@ -180,6 +194,8 @@ impl Drop for FakeInput {
 
 struct FakeOutput {
     played: Arc<Mutex<Vec<Vec<f32>>>>,
+    idle: Arc<AtomicBool>,
+    stops: Arc<AtomicUsize>,
 }
 
 impl AudioOutput for FakeOutput {
@@ -189,6 +205,10 @@ impl AudioOutput for FakeOutput {
     }
 
     fn is_idle(&self) -> bool {
-        true
+        self.idle.load(Ordering::Relaxed)
+    }
+
+    fn stop(&mut self) {
+        self.stops.fetch_add(1, Ordering::Relaxed);
     }
 }

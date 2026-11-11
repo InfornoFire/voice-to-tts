@@ -25,6 +25,9 @@ pub enum EngineEvent {
     SpeechStarted(String),
     /// The voice finished playing the text of the last [`EngineEvent::SpeechStarted`].
     SpeechEnded,
+    /// The voice was stopped before it finished the text of the last
+    /// [`EngineEvent::SpeechStarted`].
+    SpeechCancelled,
 }
 
 /// Receives the events an engine produces.

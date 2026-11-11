@@ -139,6 +139,12 @@ function SettingsView() {
             onChange={(hotkey) => updateSettings({ hotkey })}
             onRecordingChange={pauseHotkey}
           />
+          <HotkeyField
+            label="Shortcut to cancel speech"
+            value={current.cancel_hotkey}
+            onChange={(cancelHotkey) => updateSettings({ cancel_hotkey: cancelHotkey })}
+            onRecordingChange={pauseHotkey}
+          />
           <CheckboxField
             label="Start minimized"
             checked={current.start_minimized}

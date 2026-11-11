@@ -58,6 +58,7 @@ impl EventSink for Subtitles {
         match event {
             EngineEvent::SpeechStarted(text) => self.hub.publish(Message::Speaking(text)),
             EngineEvent::SpeechEnded => self.hub.publish(Message::Ended),
+            EngineEvent::SpeechCancelled => self.hub.publish(Message::Cancelled),
             EngineEvent::StateChanged(_)
             | EngineEvent::TranscriptPartial(_)
             | EngineEvent::TranscriptFinal(_) => {}
@@ -107,12 +108,14 @@ mod tests {
         subtitles.emit(EngineEvent::StateChanged(EngineState::Listening));
         subtitles.emit(EngineEvent::SpeechStarted("Hello world".to_owned()));
         subtitles.emit(EngineEvent::SpeechEnded);
+        subtitles.emit(EngineEvent::SpeechCancelled);
 
         assert_eq!(
             messages.try_recv(),
             Ok(Message::Speaking("Hello world".to_owned()))
         );
         assert_eq!(messages.try_recv(), Ok(Message::Ended));
+        assert_eq!(messages.try_recv(), Ok(Message::Cancelled));
         assert!(messages.try_recv().is_err());
     }
 }

@@ -4,6 +4,7 @@ use tauri::State;
 
 use crate::config::Config;
 use crate::error::UserFacingError;
+use crate::hotkey;
 use crate::state::AppState;
 
 #[tauri::command]
@@ -14,8 +15,8 @@ pub fn get_config(state: State<'_, AppState>) -> Config {
 
 /// Saves `config` and returns the stored value.
 ///
-/// A new shortcut is registered and the subtitles server is started or stopped first, so nothing
-/// is saved when the shortcut or the server's port is unavailable.
+/// New shortcuts are registered and the subtitles server is started or stopped first, so nothing
+/// is saved when a shortcut or the server's port is unavailable.
 #[tauri::command]
 #[specta::specta]
 pub async fn update_config(
@@ -23,9 +24,7 @@ pub async fn update_config(
     config: Config,
 ) -> Result<Config, UserFacingError> {
     let config = config.normalized();
-    state
-        .hotkeys
-        .replace(&state.config.get().hotkey, &config.hotkey)?;
+    hotkey::replace_all(state.hotkeys.as_ref(), &state.config.get(), &config)?;
     state
         .subtitles
         .apply(config.subtitles_enabled, config.subtitles_port)?;

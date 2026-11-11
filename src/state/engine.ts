@@ -8,6 +8,7 @@ import {
   toUserFacingError,
   unwrap,
 } from "../ipc";
+import { logFailure } from "../lib/log";
 import { downloadModels } from "./models";
 import { syncWithBackend } from "./sync";
 import { navigate } from "./view";
@@ -19,7 +20,7 @@ const commandError = signal<UserFacingError | null>(null);
 /** Whether the engine is starting or up. */
 export const isEngineOn = computed(() => {
   const { status } = engineState.value;
-  return status === "loading" || status === "listening" || status === "speaking";
+  return status !== "off" && status !== "error";
 });
 
 /** Whether the engine is up and can take text to speak. */
@@ -47,6 +48,11 @@ export function syncEngineState() {
 
 export function toggleEngine() {
   void setEnabled(!isEngineOn.value);
+}
+
+/** Stops the voice and pauses listening for a moment. */
+export function cancelSpeech() {
+  commands.cancelSpeech().catch(logFailure("Failed to cancel the speech."));
 }
 
 const TEST_SENTENCE = "Hello, this is a test of voice-to-tts.";

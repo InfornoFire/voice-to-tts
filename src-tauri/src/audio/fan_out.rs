@@ -25,11 +25,17 @@ impl AudioOutput for FanOutOutput {
     fn is_idle(&self) -> bool {
         self.outputs.iter().all(|output| output.is_idle())
     }
+
+    fn stop(&mut self) {
+        for output in &mut self.outputs {
+            output.stop();
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
 
     use super::*;
@@ -37,6 +43,7 @@ mod tests {
     struct Recorder {
         played: Arc<Mutex<Vec<Vec<f32>>>>,
         idle: Arc<AtomicBool>,
+        stops: Arc<AtomicUsize>,
     }
 
     impl AudioOutput for Recorder {
@@ -48,17 +55,23 @@ mod tests {
         fn is_idle(&self) -> bool {
             self.idle.load(Ordering::Relaxed)
         }
+
+        fn stop(&mut self) {
+            self.stops.fetch_add(1, Ordering::Relaxed);
+        }
     }
 
     #[test]
-    fn every_output_gets_the_clip_and_all_must_be_idle() {
+    fn every_output_gets_the_clip_and_the_stop_and_all_must_be_idle() {
         let played = Arc::new(Mutex::new(Vec::new()));
+        let stops = Arc::new(AtomicUsize::new(0));
         let first_idle = Arc::new(AtomicBool::new(true));
         let second_idle = Arc::new(AtomicBool::new(false));
         let recorder = |idle: &Arc<AtomicBool>| -> Box<dyn AudioOutput> {
             Box::new(Recorder {
                 played: Arc::clone(&played),
                 idle: Arc::clone(idle),
+                stops: Arc::clone(&stops),
             })
         };
         let mut fan_out = FanOutOutput::new(vec![recorder(&first_idle), recorder(&second_idle)]);
@@ -69,5 +82,8 @@ mod tests {
         assert!(!fan_out.is_idle());
         second_idle.store(true, Ordering::Relaxed);
         assert!(fan_out.is_idle());
+
+        fan_out.stop();
+        assert_eq!(stops.load(Ordering::Relaxed), 2);
     }
 }

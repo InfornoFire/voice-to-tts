@@ -78,4 +78,8 @@ impl Stt for StreamingStt {
         self.stream = self.recognizer.create_stream();
         text
     }
+
+    fn reset(&mut self) {
+        self.stream = self.recognizer.create_stream();
+    }
 }

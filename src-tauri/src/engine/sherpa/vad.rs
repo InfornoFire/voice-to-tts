@@ -54,4 +54,8 @@ impl Vad for SileroVad {
         self.detector.clear();
         self.detector.detected()
     }
+
+    fn reset(&mut self) {
+        self.detector.reset();
+    }
 }

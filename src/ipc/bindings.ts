@@ -9,20 +9,22 @@ export const commands = {
 	/**
 	 *  Saves `config` and returns the stored value.
 	 * 
-	 *  A new shortcut is registered and the subtitles server is started or stopped first, so nothing
-	 *  is saved when the shortcut or the server's port is unavailable.
+	 *  New shortcuts are registered and the subtitles server is started or stopped first, so nothing
+	 *  is saved when a shortcut or the server's port is unavailable.
 	 */
 	updateConfig: (config: Config) => typedError<Config, UserFacingError>(__TAURI_INVOKE("update_config", { config })),
 	/**  Whether the virtual microphone is installed. */
 	isCableInstalled: () => __TAURI_INVOKE<boolean>("is_cable_installed"),
 	/**  Lists the microphones the user can capture from. */
 	listInputDevices: () => typedError<InputDevice[], UserFacingError>(__TAURI_INVOKE("list_input_devices")),
+	/**  Stops the voice and pauses listening for a moment. Does nothing unless the engine is running. */
+	cancelSpeech: () => __TAURI_INVOKE<void>("cancel_speech"),
 	getEngineState: () => __TAURI_INVOKE<EngineState>("get_engine_state"),
 	/**  Turns the engine on or off. Progress is reported through state events. */
 	setEnabled: (enabled: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_enabled", { enabled })),
 	/**  Speaks `text` as if it had been said into the microphone. */
 	speakText: (text: string) => typedError<null, UserFacingError>(__TAURI_INVOKE("speak_text", { text })),
-	/**  Stops the shortcut from switching the engine while a new one is being recorded. */
+	/**  Stops the shortcuts from acting while a new one is being recorded. */
 	setHotkeyPaused: (paused: boolean) => typedError<null, UserFacingError>(__TAURI_INVOKE("set_hotkey_paused", { paused })),
 	/**  Stops a running download. */
 	cancelModelsDownload: () => __TAURI_INVOKE<void>("cancel_models_download"),
@@ -70,6 +72,11 @@ export type Config = {
 	input_device: string | null,
 	/**  Global shortcut that toggles the engine. An empty value disables the shortcut. */
 	hotkey: string,
+	/**
+	 *  Global shortcut that stops the voice and pauses listening for a moment. An empty value
+	 *  disables the shortcut.
+	 */
+	cancel_hotkey: string,
 	/**  Name of the text to speech voice. */
 	tts_voice: string,
 	/**  Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`]. */
@@ -101,7 +108,9 @@ export type EngineState = { status: "off" } |
 /**  Opening the microphone and loading the models. */
 { status: "loading" } | { status: "listening" } | 
 /**  Playing synthesized speech to the virtual microphone. */
-{ status: "speaking" } | { status: "error"; error: UserFacingError };
+{ status: "speaking" } | 
+/**  Ignoring the microphone and typed text for a moment after a cancel. */
+{ status: "paused" } | { status: "error"; error: UserFacingError };
 
 /**  The single recovery button the UI offers next to an error. */
 export type ErrorAction = "repair" | "pick_mic" | "retry";

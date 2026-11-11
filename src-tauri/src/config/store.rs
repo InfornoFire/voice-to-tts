@@ -132,6 +132,7 @@ mod tests {
             .update(Config {
                 input_device: Some("wasapi:mic".to_owned()),
                 hotkey: "Ctrl+Shift+T".to_owned(),
+                cancel_hotkey: "Ctrl+Shift+C".to_owned(),
                 tts_voice: "amy".to_owned(),
                 tts_speed: 1.5,
                 hear_voice: true,

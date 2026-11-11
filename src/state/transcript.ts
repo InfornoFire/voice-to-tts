@@ -50,7 +50,7 @@ export async function syncTranscript() {
 
   effect(() => {
     const { status } = engineState.value;
-    if (status === "off" || status === "error") {
+    if (status === "off" || status === "error" || status === "paused") {
       utterances.value = withoutPartials(utterances.peek());
     }
   });

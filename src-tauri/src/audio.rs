@@ -28,6 +28,9 @@ pub trait AudioOutput: Send {
 
     /// Whether everything queued has been handed to the device.
     fn is_idle(&self) -> bool;
+
+    /// Drops what is queued, so playback stops within a moment.
+    fn stop(&mut self);
 }
 
 /// The error callback of a stream, which sets `failed` when an error means the stream is gone.

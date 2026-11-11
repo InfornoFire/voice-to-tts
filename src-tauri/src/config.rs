@@ -19,6 +19,36 @@ const DEFAULT_TTS_SPEED: f32 = 1.0;
 const DEFAULT_THREADS: u8 = 2;
 const DEFAULT_SUBTITLES_PORT: u16 = 7421;
 
+/// What closing the main window does.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum CloseAction {
+    /// Asks the user each time.
+    #[default]
+    Ask,
+    /// Hides the window, and the app keeps running in the tray.
+    Tray,
+    /// Exits the app.
+    Quit,
+}
+
+/// What the user picked when asked how to close the main window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum CloseChoice {
+    Tray,
+    Quit,
+}
+
+impl From<CloseChoice> for CloseAction {
+    fn from(choice: CloseChoice) -> Self {
+        match choice {
+            CloseChoice::Tray => Self::Tray,
+            CloseChoice::Quit => Self::Quit,
+        }
+    }
+}
+
 /// Persisted user settings.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 pub struct Config {
@@ -42,6 +72,8 @@ pub struct Config {
     pub threads: u8,
     /// Whether the main window stays hidden on launch.
     pub start_minimized: bool,
+    /// What closing the main window does.
+    pub close_action: CloseAction,
     /// Whether the user has been through the setup guide.
     pub setup_guide_done: bool,
 }
@@ -58,6 +90,7 @@ impl Default for Config {
             subtitles_port: DEFAULT_SUBTITLES_PORT,
             threads: DEFAULT_THREADS,
             start_minimized: false,
+            close_action: CloseAction::default(),
             setup_guide_done: false,
         }
     }

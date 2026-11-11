@@ -10,6 +10,7 @@ import RangeField from "../components/RangeField";
 import ReadOnlyField from "../components/ReadOnlyField";
 import SelectField from "../components/SelectField";
 import ViewHeader from "../components/ViewHeader";
+import type { CloseAction } from "../ipc";
 import { config } from "../state/config";
 import { deviceError, inputDevices, isCableInstalled, refreshInputDevices } from "../state/devices";
 import { voices } from "../state/models";
@@ -30,6 +31,12 @@ const THREAD_OPTIONS = THREAD_COUNTS.map((count) => ({
   value: String(count),
   label: String(count),
 }));
+
+const CLOSE_OPTIONS: { value: CloseAction; label: string }[] = [
+  { value: "ask", label: "Ask me" },
+  { value: "tray", label: "Minimize to the tray" },
+  { value: "quit", label: "Quit" },
+];
 
 const HEAR_VOICE_HINT =
   "Also play the voice through your audio output. Without this, only the chat app hears it.";
@@ -137,6 +144,13 @@ function SettingsView() {
             checked={current.start_minimized}
             hint="Open in the background when the app starts."
             onChange={(startMinimized) => updateSettings({ start_minimized: startMinimized })}
+          />
+          <SelectField
+            label="When the window is closed"
+            value={current.close_action}
+            options={CLOSE_OPTIONS}
+            hint="In the tray, the shortcut and the voice keep working."
+            onChange={(action) => updateSettings({ close_action: action })}
           />
           <button type="button" class="button settings-guide" onClick={openGuide}>
             Show the setup guide

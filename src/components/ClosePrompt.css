@@ -1,0 +1,29 @@
+.close-prompt {
+  width: min(24rem, calc(100% - var(--space-6)));
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.close-prompt::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.close-prompt-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-title);
+}
+
+.close-prompt-message {
+  margin: 0 0 var(--space-4);
+}
+
+.close-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

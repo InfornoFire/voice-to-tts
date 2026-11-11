@@ -11,6 +11,10 @@ use crate::models::ModelsState;
 #[derive(Debug, Clone, Serialize, Type, Event)]
 pub struct StateChanged(pub EngineState);
 
+/// The user closed the main window and has not said whether the app should keep running.
+#[derive(Debug, Clone, Serialize, Type, Event)]
+pub struct CloseRequested;
+
 #[derive(Debug, Clone, Serialize, Type, Event)]
 pub struct ModelsStateChanged(pub ModelsState);
 

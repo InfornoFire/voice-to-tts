@@ -1,5 +1,7 @@
 export { commands, events } from "./bindings";
 export type {
+  CloseAction,
+  CloseChoice,
   Config,
   EngineState,
   ErrorAction,

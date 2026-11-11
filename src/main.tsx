@@ -2,6 +2,7 @@ import { render } from "preact";
 
 import App from "./App";
 import { logFailure } from "./lib/log";
+import { syncCloseRequests } from "./state/close";
 import { loadConfig } from "./state/config";
 import { syncDevices } from "./state/devices";
 import { syncEngineState } from "./state/engine";
@@ -17,4 +18,5 @@ loadConfig().catch(logFailure("Failed to load the config."));
 syncEngineState().catch(logFailure("Failed to sync the engine state."));
 syncModels().catch(logFailure("Failed to sync the models."));
 syncTranscript().catch(logFailure("Failed to sync the transcript."));
+syncCloseRequests().catch(logFailure("Failed to listen for close requests."));
 syncDevices();

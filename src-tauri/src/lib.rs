@@ -30,6 +30,7 @@ use crate::engine::{Engine, EventSink, FanOutSink};
 use crate::events::TauriEventSink;
 use crate::hotkey::{GlobalHotkeys, Hotkeys};
 use crate::models::{Manifest, ModelManager};
+use crate::shell::AppShell;
 use crate::state::AppState;
 use crate::subtitles::Subtitles;
 
@@ -50,8 +51,10 @@ fn specta_builder<R: tauri::Runtime>() -> Builder<R> {
             commands::models::download_models,
             commands::models::get_models_state,
             commands::models::list_voices,
+            commands::window::answer_close_request,
         ])
         .events(collect_events![
+            events::CloseRequested,
             events::ModelsStateChanged,
             events::StateChanged,
             events::TranscriptFinal,
@@ -133,7 +136,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(builder.invoke_handler())
-        .on_window_event(shell::hide_on_close)
+        .on_window_event(shell::handle_close_request)
         .on_page_load(shell::show_when_loaded)
         .setup(move |app| {
             builder.mount_events(app);
@@ -163,6 +166,7 @@ pub fn run() {
                 config,
                 hotkeys: Box::new(hotkeys),
                 models,
+                shell: Box::new(AppShell::new(app.handle().clone())),
                 subtitles,
             });
             Ok(())

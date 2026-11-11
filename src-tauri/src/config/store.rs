@@ -103,7 +103,7 @@ fn write_atomic(path: &Path, config: &Config) -> Result<(), ConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::MAX_THREADS;
+    use crate::config::{CloseAction, MAX_THREADS};
 
     fn config_path(directory: &tempfile::TempDir) -> PathBuf {
         directory.path().join("config.json")
@@ -139,6 +139,7 @@ mod tests {
                 subtitles_port: 9000,
                 threads: 200,
                 start_minimized: true,
+                close_action: CloseAction::Quit,
                 setup_guide_done: true,
             })
             .unwrap();

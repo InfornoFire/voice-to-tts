@@ -41,7 +41,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<TraySink<R>> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             OPEN_ID => shell::show_main_window(app),
             TOGGLE_ID => shell::toggle_engine(app),
-            QUIT_ID => app.exit(0),
+            QUIT_ID => shell::quit(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {

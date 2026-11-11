@@ -1,3 +1,5 @@
+import ClosePrompt from "./components/ClosePrompt";
+import { isClosePromptOpen } from "./state/close";
 import { modelsState } from "./state/models";
 import { currentView } from "./state/view";
 import GuideView from "./views/GuideView";
@@ -5,7 +7,7 @@ import MainView from "./views/MainView";
 import ModelsView from "./views/ModelsView";
 import SettingsView from "./views/SettingsView";
 
-function App() {
+function CurrentView() {
   const models = modelsState.value;
   if (models === null) {
     return null;
@@ -22,6 +24,15 @@ function App() {
     default:
       return <MainView />;
   }
+}
+
+function App() {
+  return (
+    <>
+      <CurrentView />
+      {isClosePromptOpen.value && <ClosePrompt />}
+    </>
+  );
 }
 
 export default App;

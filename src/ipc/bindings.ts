@@ -35,10 +35,13 @@ export const commands = {
 	getModelsState: () => __TAURI_INVOKE<ModelsState>("get_models_state"),
 	/**  Lists the voices the speech can be spoken in, the first being the default. */
 	listVoices: () => __TAURI_INVOKE<Voice[]>("list_voices"),
+	/**  Carries out the answer to the close prompt, and remembers it when asked to. */
+	answerCloseRequest: (choice: CloseChoice, remember: boolean) => __TAURI_INVOKE<void>("answer_close_request", { choice, remember }),
 };
 
 /** Events */
 export const events = {
+	closeRequested: makeEvent<CloseRequested, CloseRequested>("close-requested"),
 	modelsStateChanged: makeEvent<ModelsStateChanged, ModelsStateChanged>("models-state-changed"),
 	stateChanged: makeEvent<StateChanged, StateChanged>("state-changed"),
 	transcriptFinal: makeEvent<TranscriptFinal, TranscriptFinal>("transcript-final"),
@@ -46,6 +49,21 @@ export const events = {
 };
 
 /* Types */
+/**  What closing the main window does. */
+export type CloseAction = 
+/**  Asks the user each time. */
+"ask" | 
+/**  Hides the window, and the app keeps running in the tray. */
+"tray" | 
+/**  Exits the app. */
+"quit";
+
+/**  What the user picked when asked how to close the main window. */
+export type CloseChoice = "tray" | "quit";
+
+/**  The user closed the main window and has not said whether the app should keep running. */
+export type CloseRequested = null;
+
 /**  Persisted user settings. */
 export type Config = {
 	/**  Identifier of the microphone to capture from, or `None` for the system default. */
@@ -72,6 +90,8 @@ export type Config = {
 	threads: number,
 	/**  Whether the main window stays hidden on launch. */
 	start_minimized: boolean,
+	/**  What closing the main window does. */
+	close_action: CloseAction,
 	/**  Whether the user has been through the setup guide. */
 	setup_guide_done: boolean,
 };

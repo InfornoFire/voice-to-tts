@@ -29,11 +29,11 @@ The subtitle appears when the voice starts speaking and fades 5 seconds after it
 
 ## Speech models
 
-Everything runs on your computer. The speech models (about 700 MB) are downloaded the first time the app starts and are stored in `%LOCALAPPDATA%\com.inforno.voice-to-tts\models`. [src-tauri/models.json](src-tauri/models.json) lists every file with its URL, size and SHA-256, and a download is only kept when it matches.
+Everything runs on your computer. The speech models (about 1 GB) are downloaded the first time the app starts and are stored in `%LOCALAPPDATA%\com.inforno.voice-to-tts\models`. [src-tauri/models.json](src-tauri/models.json) lists every file with its URL, size and SHA-256, and a download is only kept when it matches.
 
 - Voice detection: [Silero VAD](https://github.com/snakers4/silero-vad) (MIT).
 - Speech recognition: [Nemotron Speech Streaming](https://huggingface.co/nvidia/nemotron-speech-streaming-en-0.6b) by NVIDIA. Licensed by NVIDIA Corporation under the NVIDIA Open Model License.
-- Voices: [KittenTTS](https://github.com/KittenML/KittenTTS) nano (Apache-2.0).
+- Voices: [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0), with the pronunciation lexicon of [Misaki](https://github.com/hexgrad/misaki) (Apache-2.0).
 - All of them run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx).
 
 ## Development

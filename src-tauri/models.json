@@ -7,12 +7,6 @@
       "size": 643854
     },
     {
-      "path": "lexicon-en-us.txt",
-      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/lexicon-en-us.txt",
-      "sha256": "8b67ae549a465eee78f92ecb74644ad90c3c58ce65f19c68baf85878a10ef73a",
-      "size": 6305773
-    },
-    {
       "path": "sherpa-onnx-nemotron-speech-streaming-en-0.6b-560ms-int8/encoder.int8.onnx",
       "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-nemotron-speech-streaming-en-0.6b-560ms-int8-2026-04-25/resolve/52056fdc070914a48dcd68b31b44d6a6f5b85902/encoder.int8.onnx",
       "sha256": "7d932213491ad355c6e5576705dc3494731a52af87d7a1b954559340147909d8",
@@ -37,32 +31,39 @@
       "size": 8952
     },
     {
-      "path": "kitten-nano-en-v0_8-int8/model.int8.onnx",
-      "url": "https://huggingface.co/csukuangfj2/kitten-nano-en-v0_8-int8/resolve/90dfe12687f7822a90e5afc5931b536ba6caf22a/model.int8.onnx",
-      "sha256": "0ba1e21eda9c8bcc4a70ada7e0d27fefc9ba775aaa037547248ec71f9a3d9b7d",
-      "size": 24370878
+      "path": "kokoro-multi-lang-v1_0/model.onnx",
+      "url": "https://huggingface.co/csukuangfj/kokoro-multi-lang-v1_0/resolve/f7b96bb6bef5c5da4d3aa4f4e0498fbbf62dc78b/model.onnx",
+      "sha256": "b40f62b166ac8164b0627ef48a0b358eda0985e272fb03ef5252e7206305da11",
+      "size": 325560556
     },
     {
-      "path": "kitten-nano-en-v0_8-int8/voices.bin",
-      "url": "https://huggingface.co/csukuangfj2/kitten-nano-en-v0_8-int8/resolve/90dfe12687f7822a90e5afc5931b536ba6caf22a/voices.bin",
-      "sha256": "d520519c4a3519d44fcfcd943ed0b1e3c5da5cee0eea501d922fac1a93cd24dc",
-      "size": 3276800
+      "path": "kokoro-multi-lang-v1_0/voices.bin",
+      "url": "https://huggingface.co/csukuangfj/kokoro-multi-lang-v1_0/resolve/f7b96bb6bef5c5da4d3aa4f4e0498fbbf62dc78b/voices.bin",
+      "sha256": "1c5a5b983d3d50d8586d437a51f3faa2da7919ce76a013c081e65671a3447c29",
+      "size": 28200960
     },
     {
-      "path": "kitten-nano-en-v0_8-int8/tokens.txt",
-      "url": "https://huggingface.co/csukuangfj2/kitten-nano-en-v0_8-int8/resolve/90dfe12687f7822a90e5afc5931b536ba6caf22a/tokens.txt",
-      "sha256": "934a4188addc7665dd3410256bb622169242357fbb99d840d9351209b486dabb",
-      "size": 1064
+      "path": "kokoro-multi-lang-v1_0/lexicon-us-en.txt",
+      "url": "https://huggingface.co/csukuangfj/kokoro-multi-lang-v1_0/resolve/f7b96bb6bef5c5da4d3aa4f4e0498fbbf62dc78b/lexicon-us-en.txt",
+      "sha256": "7daaab53a181be9885b853a8582bf1838186317e5dadacbcef9c426d6fa0da14",
+      "size": 5956885
+    },
+    {
+      "path": "kokoro-multi-lang-v1_0/tokens.txt",
+      "url": "https://huggingface.co/csukuangfj/kokoro-multi-lang-v1_0/resolve/f7b96bb6bef5c5da4d3aa4f4e0498fbbf62dc78b/tokens.txt",
+      "sha256": "6ebb6bb288f20f3ae8d004d3c2ca27697da27c037d75e81a60e2a6a663f95425",
+      "size": 687
     }
   ],
   "voices": [
-    { "id": "jasper", "name": "Jasper (male)", "speaker": 0 },
-    { "id": "bella", "name": "Bella (female)", "speaker": 1 },
-    { "id": "bruno", "name": "Bruno (male)", "speaker": 2 },
-    { "id": "luna", "name": "Luna (female)", "speaker": 3 },
-    { "id": "hugo", "name": "Hugo (male)", "speaker": 4 },
-    { "id": "rosie", "name": "Rosie (female)", "speaker": 5 },
-    { "id": "leo", "name": "Leo (male)", "speaker": 6 },
-    { "id": "kiki", "name": "Kiki (female)", "speaker": 7 }
+    { "id": "heart", "name": "Heart (female)", "speaker": 3 },
+    { "id": "bella", "name": "Bella (female)", "speaker": 2 },
+    { "id": "nicole", "name": "Nicole (female)", "speaker": 6 },
+    { "id": "aoede", "name": "Aoede (female)", "speaker": 1 },
+    { "id": "kore", "name": "Kore (female)", "speaker": 5 },
+    { "id": "sarah", "name": "Sarah (female)", "speaker": 9 },
+    { "id": "michael", "name": "Michael (male)", "speaker": 16 },
+    { "id": "fenrir", "name": "Fenrir (male)", "speaker": 14 },
+    { "id": "puck", "name": "Puck (male)", "speaker": 18 }
   ]
 }

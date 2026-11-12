@@ -14,11 +14,10 @@ use crate::config::Config;
 use crate::models::Voice;
 
 const VAD_FILE: &str = "silero_vad.onnx";
-const LEXICON_FILE: &str = "lexicon-en-us.txt";
 
 /// The directories of the speech models within the models directory.
 const RECOGNIZER_DIR: &str = "sherpa-onnx-nemotron-speech-streaming-en-0.6b-560ms-int8";
-const VOICE_DIR: &str = "kitten-nano-en-v0_8-int8";
+const VOICE_DIR: &str = "kokoro-multi-lang-v1_0";
 
 /// The files of the speech recognition model, and how it has to be fed.
 const RECOGNIZER_MODEL: StreamingModel = StreamingModel {
@@ -67,7 +66,6 @@ impl Resources for LocalResources {
         let models = &self.models_dir;
         let recognizer = models.join(RECOGNIZER_DIR);
         let voice = models.join(VOICE_DIR);
-        let lexicon = models.join(LEXICON_FILE);
         Ok(Models {
             vad: Box::new(SileroVad::load(&models.join(VAD_FILE))?),
             stt: Box::new(StreamingStt::load(
@@ -75,9 +73,8 @@ impl Resources for LocalResources {
                 RECOGNIZER_MODEL,
                 config.threads,
             )?),
-            tts: Box::new(SherpaTts::kitten(
+            tts: Box::new(SherpaTts::kokoro(
                 &voice,
-                &lexicon,
                 self.voices.clone(),
                 config.threads,
             )?),

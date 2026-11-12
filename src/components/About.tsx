@@ -11,9 +11,15 @@ const CREDITS = [
     license: "NVIDIA Open Model License",
   },
   {
-    name: "KittenTTS",
-    href: "https://github.com/KittenML/KittenTTS",
+    name: "Kokoro",
+    href: "https://huggingface.co/hexgrad/Kokoro-82M",
     role: "speaks the voices",
+    license: "Apache-2.0",
+  },
+  {
+    name: "Misaki",
+    href: "https://github.com/hexgrad/misaki",
+    role: "knows how words are said",
     license: "Apache-2.0",
   },
   {

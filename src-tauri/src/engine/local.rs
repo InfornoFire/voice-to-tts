@@ -197,6 +197,66 @@ mod tests {
 
     #[test]
     #[ignore = "needs the models downloaded to the models directory"]
+    fn partial_text_while_speech_is_recognized() {
+        const STEP_SAMPLES: usize = INPUT_SAMPLE_RATE as usize / 50;
+        const SENTENCES: [&str; 3] = [
+            "Hello there, this is a test of the voice proxy.",
+            "I paid twenty dollars for it, but the GPU was not working at all.",
+            "We could start the meeting now, or we could wait a few more minutes for everyone.",
+        ];
+
+        let voices = Manifest::bundled().voices;
+        let mut models = LocalResources::new(models_dir(), voices.clone())
+            .load_models(&Config::default())
+            .unwrap();
+        let seconds = |samples: usize| samples as f32 / INPUT_SAMPLE_RATE as f32;
+        let silence = |length: f32| vec![0.0; (INPUT_SAMPLE_RATE as f32 * length) as usize];
+
+        let mut audio = Vec::new();
+        for sentence in SENTENCES {
+            audio.extend(silence(1.0));
+            let speech = models.tts.synthesize(sentence, &voices[0].id, 1.0).unwrap();
+            let speech =
+                resample_clip(&speech, models.tts.sample_rate(), INPUT_SAMPLE_RATE).unwrap();
+            println!(
+                "speech from {:.2} s to {:.2} s: {sentence}",
+                seconds(audio.len()),
+                seconds(audio.len() + speech.len())
+            );
+            audio.extend(speech);
+            audio.extend(silence(1.5));
+        }
+
+        let mut listener = Listener::new(models.vad, models.stt);
+        let mut earlier = Vec::<String>::new();
+        let mut changed_words = 0;
+        let mut updates = 0;
+        for (index, chunk) in audio.chunks(STEP_SAMPLES).enumerate() {
+            let now = seconds((index + 1) * STEP_SAMPLES);
+            match listener.accept(chunk) {
+                Some(Heard::Partial(text)) => {
+                    let words: Vec<String> = text.split(' ').map(str::to_owned).collect();
+                    let settled = earlier.len().saturating_sub(1);
+                    let changed = (0..settled)
+                        .filter(|&position| words.get(position) != earlier.get(position))
+                        .count();
+                    changed_words += changed;
+                    updates += 1;
+                    println!("{now:.2} s, {changed} settled words changed: {text}");
+                    earlier = words;
+                }
+                Some(Heard::Final(text)) => {
+                    println!("{now:.2} s, final: {text}");
+                    earlier.clear();
+                }
+                None => {}
+            }
+        }
+        println!("{changed_words} settled words changed over {updates} updates");
+    }
+
+    #[test]
+    #[ignore = "needs the models downloaded to the models directory"]
     fn idle_cost_of_the_loaded_models() {
         const POLL_SAMPLES: usize = 320;
         const SECONDS: usize = 60;

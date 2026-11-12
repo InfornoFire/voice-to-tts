@@ -135,6 +135,8 @@ mod tests {
                 cancel_hotkey: "Ctrl+Shift+C".to_owned(),
                 tts_voice: "amy".to_owned(),
                 tts_speed: 1.5,
+                stream_speech: false,
+                stream_delay_seconds: 1.0,
                 hear_voice: true,
                 subtitles_enabled: true,
                 subtitles_port: 9000,

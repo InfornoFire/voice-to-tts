@@ -1,16 +1,18 @@
 //! The threads of an engine that is on, one listening and one speaking.
 
+mod listen;
+mod speak;
+
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use super::{
-    EngineError, EngineEvent, EngineState, EventSink, Heard, Listener, StateMachine, Transcript,
-    Tts,
-};
-use crate::audio::devices::AudioError;
+use listen::listen;
+use speak::speak;
+
+use super::{EngineError, EventSink, Listener, Phrase, StateMachine, Tts};
 use crate::audio::{AudioInput, AudioOutput};
 use crate::config::Config;
 
@@ -42,6 +44,8 @@ pub struct Parts {
 /// A text to speak, and how many times speech had been cancelled when it was queued.
 struct Request {
     text: String,
+    /// Whether the text goes on from the request before it.
+    continues: bool,
     cancellations: u32,
 }
 
@@ -73,9 +77,10 @@ impl Shared {
         (self.on_fault)(error);
     }
 
-    fn request(&self, text: String) -> Request {
+    fn request(&self, phrase: Phrase) -> Request {
         Request {
-            text,
+            text: phrase.text,
+            continues: phrase.continues,
             cancellations: self.cancellations.load(Ordering::Relaxed),
         }
     }
@@ -157,14 +162,18 @@ impl Session {
     /// Queues `text` to be spoken after what is already queued.
     pub fn say(&self, text: String) {
         if let Some(requests) = &self.requests {
-            let _ = requests.send(self.shared.request(text));
+            let phrase = Phrase {
+                text,
+                continues: false,
+            };
+            let _ = requests.send(self.shared.request(phrase));
         }
     }
 
     /// Stops the voice, drops what is queued and the sentence being heard, and then ignores the
     /// microphone for a moment.
     ///
-    /// The listening thread notices and moves the engine to [`EngineState::Paused`].
+    /// The listening thread notices and pauses the engine.
     pub fn cancel(&self) {
         self.shared.cancel();
     }
@@ -177,123 +186,5 @@ impl Drop for Session {
         for thread in self.threads.drain(..) {
             let _ = thread.join();
         }
-    }
-}
-
-/// Recognizes what the microphone hears and queues each finished utterance to be spoken.
-///
-/// This thread alone moves the engine into and out of [`EngineState::Paused`]. While paused the
-/// microphone is still read, so no audio piles up, but it is thrown away.
-fn listen(
-    shared: &Shared,
-    mut input: Box<dyn AudioInput>,
-    mut listener: Listener,
-    requests: &Sender<Request>,
-) {
-    let mut samples = Vec::new();
-    let mut utterance_id = None;
-    let mut was_paused = false;
-
-    while !shared.is_stopped() {
-        thread::sleep(POLL_INTERVAL);
-        if input.has_failed() {
-            shared.fail(AudioError::MicUnavailable.into());
-            return;
-        }
-
-        samples.clear();
-        input.read(&mut samples);
-
-        let paused = shared.is_paused();
-        if paused != was_paused {
-            was_paused = paused;
-            if paused {
-                listener.reset();
-                utterance_id = None;
-                shared.state.transition(EngineState::Paused);
-            } else {
-                shared
-                    .state
-                    .transition_from(&EngineState::Paused, EngineState::Listening);
-            }
-        }
-        if paused || samples.is_empty() {
-            continue;
-        }
-
-        match listener.accept(&samples) {
-            Some(Heard::Partial(text)) => {
-                let utterance_id = *utterance_id.get_or_insert_with(|| shared.next_utterance_id());
-                shared.sink.emit(EngineEvent::TranscriptPartial(Transcript {
-                    utterance_id,
-                    text,
-                }));
-            }
-            Some(Heard::Final(text)) => {
-                let started_id = utterance_id.take();
-                if text.is_empty() {
-                    continue;
-                }
-                let utterance_id = started_id.unwrap_or_else(|| shared.next_utterance_id());
-                shared.sink.emit(EngineEvent::TranscriptFinal(Transcript {
-                    utterance_id,
-                    text: text.clone(),
-                }));
-                let _ = requests.send(shared.request(text));
-            }
-            None => {}
-        }
-    }
-}
-
-/// Turns each requested text into speech on the output, one after the other.
-///
-/// A request that was queued before a cancel is skipped. A clip that is being generated or played
-/// when speech is cancelled is dropped, and the state is left to the listening thread.
-fn speak(
-    shared: &Shared,
-    requests: &Receiver<Request>,
-    mut tts: Box<dyn Tts>,
-    mut output: Box<dyn AudioOutput>,
-) {
-    for Request {
-        text,
-        cancellations,
-    } in requests
-    {
-        if shared.is_stopped() {
-            return;
-        }
-        let is_cancelled = || shared.is_cancelled(cancellations);
-        if is_cancelled() || !shared.state.transition(EngineState::Speaking) {
-            continue;
-        }
-
-        let config = (shared.settings)();
-        match tts.synthesize(&text, &config.tts_voice, config.tts_speed) {
-            Ok(samples) => {
-                if is_cancelled() {
-                    continue;
-                }
-                if let Err(error) = output.play(&samples, tts.sample_rate()) {
-                    shared.fail(error.into());
-                    return;
-                }
-                shared.sink.emit(EngineEvent::SpeechStarted(text));
-                while !output.is_idle() && !shared.is_stopped() && !is_cancelled() {
-                    thread::sleep(POLL_INTERVAL);
-                }
-                if is_cancelled() {
-                    output.stop();
-                    shared.sink.emit(EngineEvent::SpeechCancelled);
-                    continue;
-                }
-                shared.sink.emit(EngineEvent::SpeechEnded);
-            }
-            Err(error) => log::warn!("could not turn text into speech: {error:?}"),
-        }
-        shared
-            .state
-            .transition_from(&EngineState::Speaking, EngineState::Listening);
     }
 }

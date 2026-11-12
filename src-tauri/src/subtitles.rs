@@ -1,12 +1,14 @@
 //! Shows the text the voice speaks in an OBS browser source.
 
 mod hub;
+mod sentence;
 mod server;
 
 use std::io;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use hub::{Hub, Message};
+use sentence::Sentence;
 use server::Server;
 
 use crate::engine::{EngineEvent, EventSink};
@@ -22,6 +24,7 @@ pub enum SubtitlesError {
 #[derive(Default)]
 pub struct Subtitles {
     hub: Arc<Hub>,
+    sentence: Mutex<Sentence>,
     server: Mutex<Option<Server>>,
 }
 
@@ -30,7 +33,7 @@ impl Subtitles {
     ///
     /// When the port cannot be used, a server that is already running stays up.
     pub fn apply(&self, enabled: bool, port: u16) -> Result<(), SubtitlesError> {
-        let mut server = self.lock();
+        let mut server = self.lock_server();
         if !enabled {
             *server = None;
             return Ok(());
@@ -48,17 +51,27 @@ impl Subtitles {
         Ok(())
     }
 
-    fn lock(&self) -> MutexGuard<'_, Option<Server>> {
+    fn lock_server(&self) -> MutexGuard<'_, Option<Server>> {
         self.server.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn lock_sentence(&self) -> MutexGuard<'_, Sentence> {
+        self.sentence.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
 
 impl EventSink for Subtitles {
     fn emit(&self, event: EngineEvent) {
         match event {
-            EngineEvent::SpeechStarted(text) => self.hub.publish(Message::Speaking(text)),
+            EngineEvent::SpeechStarted { text, continues } => {
+                let shown = self.lock_sentence().add(&text, continues).to_owned();
+                self.hub.publish(Message::Speaking(shown));
+            }
             EngineEvent::SpeechEnded => self.hub.publish(Message::Ended),
-            EngineEvent::SpeechCancelled => self.hub.publish(Message::Cancelled),
+            EngineEvent::SpeechCancelled => {
+                self.lock_sentence().clear();
+                self.hub.publish(Message::Cancelled);
+            }
             EngineEvent::StateChanged(_)
             | EngineEvent::TranscriptPartial(_)
             | EngineEvent::TranscriptFinal(_) => {}
@@ -106,16 +119,26 @@ mod tests {
         let messages = subtitles.hub.subscribe();
 
         subtitles.emit(EngineEvent::StateChanged(EngineState::Listening));
-        subtitles.emit(EngineEvent::SpeechStarted("Hello world".to_owned()));
-        subtitles.emit(EngineEvent::SpeechEnded);
+        for (text, continues) in [("Hello", false), ("world", true)] {
+            subtitles.emit(EngineEvent::SpeechStarted {
+                text: text.to_owned(),
+                continues,
+            });
+            subtitles.emit(EngineEvent::SpeechEnded);
+        }
         subtitles.emit(EngineEvent::SpeechCancelled);
+        subtitles.emit(EngineEvent::SpeechStarted {
+            text: "again".to_owned(),
+            continues: true,
+        });
 
-        assert_eq!(
-            messages.try_recv(),
-            Ok(Message::Speaking("Hello world".to_owned()))
-        );
+        let speaking = |text: &str| Ok(Message::Speaking(text.to_owned()));
+        assert_eq!(messages.try_recv(), speaking("Hello"));
+        assert_eq!(messages.try_recv(), Ok(Message::Ended));
+        assert_eq!(messages.try_recv(), speaking("Hello world"));
         assert_eq!(messages.try_recv(), Ok(Message::Ended));
         assert_eq!(messages.try_recv(), Ok(Message::Cancelled));
+        assert_eq!(messages.try_recv(), speaking("again"));
         assert!(messages.try_recv().is_err());
     }
 }

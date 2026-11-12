@@ -49,6 +49,8 @@
     <div id="subtitle"></div>
     <script>
       const DEFAULT_HOLD_SECONDS = 5;
+      // The next phrase of the same sentence may follow, so the text never leaves sooner than this.
+      const MIN_HOLD_SECONDS = 1;
 
       const subtitle = document.getElementById("subtitle");
       const requestedHold = new URLSearchParams(location.search).get("hold");
@@ -68,7 +70,10 @@
 
       source.addEventListener("ended", () => {
         clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => subtitle.classList.remove("visible"), holdSeconds * 1000);
+        hideTimer = setTimeout(
+          () => subtitle.classList.remove("visible"),
+          Math.max(holdSeconds, MIN_HOLD_SECONDS) * 1000,
+        );
       });
 
       source.addEventListener("cancelled", () => {

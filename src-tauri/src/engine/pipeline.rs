@@ -246,7 +246,9 @@ mod tests {
 
     use super::*;
     use crate::engine::EngineEvent;
-    use crate::engine::fakes::{FakeResources, next_event, state_changed, transcript};
+    use crate::engine::fakes::{
+        FakeResources, next_event, speech_started, state_changed, transcript,
+    };
     use crate::error::ErrorCode;
 
     fn speech() -> Vec<f32> {
@@ -307,7 +309,7 @@ mod tests {
                 EngineEvent::TranscriptPartial(transcript(0, "Hello")),
                 EngineEvent::TranscriptFinal(transcript(0, "Hello world")),
                 state_changed(EngineState::Speaking),
-                EngineEvent::SpeechStarted("Hello world".to_owned()),
+                speech_started("Hello world", false),
                 EngineEvent::SpeechEnded,
                 state_changed(EngineState::Listening),
             ],
@@ -380,12 +382,71 @@ mod tests {
             &events,
             [
                 state_changed(EngineState::Speaking),
-                EngineEvent::SpeechStarted("hi".to_owned()),
+                speech_started("hi", false),
                 EngineEvent::SpeechEnded,
                 state_changed(EngineState::Listening),
             ],
         );
         assert_eq!(*resources.played.lock().unwrap(), [vec![0.5; 2]]);
+    }
+
+    #[test]
+    fn a_long_utterance_is_spoken_in_parts_while_it_is_still_being_said() {
+        const WORDS: [&str; 10] = [
+            "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+        ];
+        let resources = FakeResources {
+            words: WORDS.to_vec(),
+            ..FakeResources::default()
+        };
+        resources
+            .heard
+            .lock()
+            .unwrap()
+            .extend(std::iter::repeat_n(speech(), 8).chain([silence()]));
+        let config = Config {
+            stream_delay_seconds: 0.0,
+            ..Config::default()
+        };
+        let (engine, events) = engine_with_config(&resources, config);
+
+        engine.set_enabled(true).unwrap();
+
+        let mut reported = Vec::new();
+        let mut spoken_words = 0;
+        while spoken_words < WORDS.len() {
+            let event = next_event(&events);
+            if let EngineEvent::SpeechStarted { text, .. } = &event {
+                spoken_words += text.split(' ').count();
+            }
+            reported.push(event);
+        }
+
+        let parts: Vec<_> = reported
+            .iter()
+            .filter_map(|event| match event {
+                EngineEvent::SpeechStarted { text, continues } => Some((text.as_str(), *continues)),
+                _ => None,
+            })
+            .collect();
+        let texts: Vec<_> = parts.iter().map(|(text, _)| *text).collect();
+        assert_eq!(texts.join(" "), WORDS.join(" "));
+        assert!(!parts[0].1);
+        assert!(parts[1..].iter().all(|(_, continues)| *continues));
+
+        let first_part = reported
+            .iter()
+            .position(|event| matches!(event, EngineEvent::SpeechStarted { .. }))
+            .unwrap();
+        let final_transcript = reported
+            .iter()
+            .position(|event| matches!(event, EngineEvent::TranscriptFinal(_)))
+            .unwrap();
+        assert!(
+            first_part < final_transcript,
+            "the voice waited for the end"
+        );
+        assert_eq!(*resources.spoken.lock().unwrap(), texts);
     }
 
     #[test]
@@ -413,7 +474,7 @@ mod tests {
                 EngineEvent::TranscriptPartial(transcript(0, "Hello")),
                 EngineEvent::TranscriptFinal(transcript(0, "Hello world")),
                 state_changed(EngineState::Speaking),
-                EngineEvent::SpeechStarted("Hello world".to_owned()),
+                speech_started("Hello world", false),
             ],
         );
 

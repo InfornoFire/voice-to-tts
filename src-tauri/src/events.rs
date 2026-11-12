@@ -53,7 +53,7 @@ impl<R: Runtime> EventSink for TauriEventSink<R> {
                 TranscriptPartial(transcript).emit(&self.app)
             }
             EngineEvent::TranscriptFinal(transcript) => TranscriptFinal(transcript).emit(&self.app),
-            EngineEvent::SpeechStarted(_)
+            EngineEvent::SpeechStarted { .. }
             | EngineEvent::SpeechEnded
             | EngineEvent::SpeechCancelled => Ok(()),
         };

@@ -81,6 +81,14 @@ export type Config = {
 	tts_voice: string,
 	/**  Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`]. */
 	tts_speed: number | null,
+	/**  Whether the voice speaks while the sentence is still being said, instead of after it ended. */
+	stream_speech: boolean,
+	/**
+	 *  How long a word waits after the next one appeared before it is spoken, between
+	 *  [`MIN_STREAM_DELAY_SECONDS`] and [`MAX_STREAM_DELAY_SECONDS`]. Used while `stream_speech`
+	 *  is on.
+	 */
+	stream_delay_seconds: number | null,
 	/**
 	 *  Whether the voice also plays through the audio output while it goes to the virtual
 	 *  microphone.

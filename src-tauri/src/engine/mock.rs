@@ -124,6 +124,14 @@ impl Engine for MockEngine {
     }
 }
 
+/// The mock never speaks a sentence in parts.
+fn speech_started(text: String) -> EngineEvent {
+    EngineEvent::SpeechStarted {
+        text,
+        continues: false,
+    }
+}
+
 struct Worker {
     state: Arc<StateMachine>,
     sink: Arc<dyn EventSink>,
@@ -167,7 +175,7 @@ impl Worker {
             Command::Speak(text) => {
                 if self.state.get().is_running() {
                     self.state.transition(EngineState::Speaking);
-                    self.sink.emit(EngineEvent::SpeechStarted(text));
+                    self.sink.emit(speech_started(text));
                     self.steps.push_front(Step {
                         delay: self.pacing.speak,
                         action: Action::Spoken,
@@ -203,7 +211,7 @@ impl Worker {
                 let text = transcript.text.clone();
                 self.sink.emit(EngineEvent::TranscriptFinal(transcript));
                 self.state.transition(EngineState::Speaking);
-                self.sink.emit(EngineEvent::SpeechStarted(text));
+                self.sink.emit(speech_started(text));
             }
             Action::Spoken => {
                 self.sink.emit(EngineEvent::SpeechEnded);
@@ -304,7 +312,7 @@ mod tests {
             EngineEvent::TranscriptPartial(transcript(0, "hello world")),
             EngineEvent::TranscriptFinal(transcript(0, "hello world")),
             state_changed(EngineState::Speaking),
-            EngineEvent::SpeechStarted("hello world".to_owned()),
+            speech_started("hello world".to_owned()),
             EngineEvent::SpeechEnded,
             state_changed(EngineState::Listening),
             EngineEvent::TranscriptPartial(transcript(1, "hello")),
@@ -329,10 +337,7 @@ mod tests {
         engine.speak_text("hi").unwrap();
 
         assert_eq!(next_event(&events), state_changed(EngineState::Speaking));
-        assert_eq!(
-            next_event(&events),
-            EngineEvent::SpeechStarted("hi".to_owned())
-        );
+        assert_eq!(next_event(&events), speech_started("hi".to_owned()));
         assert_eq!(next_event(&events), EngineEvent::SpeechEnded);
         assert_eq!(next_event(&events), state_changed(EngineState::Listening));
     }
@@ -349,10 +354,7 @@ mod tests {
         assert_eq!(next_event(&events), state_changed(EngineState::Listening));
         engine.speak_text("hi").unwrap();
         assert_eq!(next_event(&events), state_changed(EngineState::Speaking));
-        assert_eq!(
-            next_event(&events),
-            EngineEvent::SpeechStarted("hi".to_owned())
-        );
+        assert_eq!(next_event(&events), speech_started("hi".to_owned()));
 
         engine.cancel_speech();
 

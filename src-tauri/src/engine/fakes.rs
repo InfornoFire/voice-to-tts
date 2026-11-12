@@ -34,6 +34,13 @@ pub fn transcript(utterance_id: u32, text: &str) -> Transcript {
     }
 }
 
+pub fn speech_started(text: &str, continues: bool) -> EngineEvent {
+    EngineEvent::SpeechStarted {
+        text: text.to_owned(),
+        continues,
+    }
+}
+
 pub struct LoudnessVad;
 
 impl Vad for LoudnessVad {
@@ -66,8 +73,39 @@ impl Stt for RecordingStt {
     }
 }
 
-/// Speaks one sample of audio for each letter.
-pub struct LetterTts;
+/// Recognizes one more word of a sentence each time it is given audio, and all of them at the end.
+pub struct SentenceStt {
+    words: Vec<&'static str>,
+    heard: usize,
+}
+
+impl SentenceStt {
+    pub fn new(words: Vec<&'static str>) -> Self {
+        Self { words, heard: 0 }
+    }
+}
+
+impl Stt for SentenceStt {
+    fn accept(&mut self, _samples: &[f32]) -> String {
+        self.heard = (self.heard + 1).min(self.words.len());
+        self.words[..self.heard].join(" ")
+    }
+
+    fn finish(&mut self) -> String {
+        self.heard = 0;
+        self.words.join(" ")
+    }
+
+    fn reset(&mut self) {
+        self.heard = 0;
+    }
+}
+
+/// Speaks one sample of audio for each letter, and records the texts it was given.
+#[derive(Default)]
+pub struct LetterTts {
+    pub spoken: Arc<Mutex<Vec<String>>>,
+}
 
 impl Tts for LetterTts {
     fn sample_rate(&self) -> u32 {
@@ -80,6 +118,7 @@ impl Tts for LetterTts {
         _voice: &str,
         _speed: f32,
     ) -> Result<Vec<f32>, SpeechError> {
+        self.spoken.lock().unwrap().push(text.to_owned());
         Ok(vec![0.5; text.len()])
     }
 }
@@ -92,6 +131,11 @@ pub struct FakeResources {
     pub microphone_installed: bool,
     /// Whether the microphone is the output of the virtual microphone.
     pub microphone_is_virtual: bool,
+    /// The words of the sentence the recognizer hears, one more each time it is given audio. The
+    /// recognizer always hears the same two words when this is empty.
+    pub words: Vec<&'static str>,
+    /// The texts the voice was asked to speak.
+    pub spoken: Arc<Mutex<Vec<String>>>,
     /// The audio the microphone will hear, one entry for each time it is read.
     pub heard: Arc<Mutex<VecDeque<Vec<f32>>>>,
     pub microphone_lost: Arc<AtomicBool>,
@@ -112,6 +156,8 @@ impl Default for FakeResources {
             models_installed: true,
             microphone_installed: true,
             microphone_is_virtual: false,
+            words: Vec::new(),
+            spoken: Arc::default(),
             heard: Arc::default(),
             microphone_lost: Arc::default(),
             microphone_open: Arc::default(),
@@ -160,10 +206,17 @@ impl Resources for FakeResources {
         if !self.models_installed {
             return Err(SpeechError::Load("test"));
         }
+        let stt: Box<dyn Stt> = if self.words.is_empty() {
+            Box::new(RecordingStt::default())
+        } else {
+            Box::new(SentenceStt::new(self.words.clone()))
+        };
         Ok(Models {
             vad: Box::new(LoudnessVad),
-            stt: Box::new(RecordingStt::default()),
-            tts: Box::new(LetterTts),
+            stt,
+            tts: Box::new(LetterTts {
+                spoken: Arc::clone(&self.spoken),
+            }),
         })
     }
 }

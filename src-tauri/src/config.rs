@@ -11,12 +11,15 @@ pub const MIN_THREADS: u8 = 1;
 pub const MAX_THREADS: u8 = 8;
 pub const MIN_TTS_SPEED: f32 = 0.5;
 pub const MAX_TTS_SPEED: f32 = 2.0;
+pub const MIN_STREAM_DELAY_SECONDS: f32 = 0.0;
+pub const MAX_STREAM_DELAY_SECONDS: f32 = 2.0;
 pub const MIN_SUBTITLES_PORT: u16 = 1024;
 
 const DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
 const DEFAULT_CANCEL_HOTKEY: &str = "Ctrl+Alt+X";
 const DEFAULT_TTS_VOICE: &str = "default";
 const DEFAULT_TTS_SPEED: f32 = 1.0;
+const DEFAULT_STREAM_DELAY_SECONDS: f32 = 0.5;
 const DEFAULT_THREADS: u8 = 2;
 const DEFAULT_SUBTITLES_PORT: u16 = 7421;
 
@@ -64,6 +67,12 @@ pub struct Config {
     pub tts_voice: String,
     /// Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`].
     pub tts_speed: f32,
+    /// Whether the voice speaks while the sentence is still being said, instead of after it ended.
+    pub stream_speech: bool,
+    /// How long a word waits after the next one appeared before it is spoken, between
+    /// [`MIN_STREAM_DELAY_SECONDS`] and [`MAX_STREAM_DELAY_SECONDS`]. Used while `stream_speech`
+    /// is on.
+    pub stream_delay_seconds: f32,
     /// Whether the voice also plays through the audio output while it goes to the virtual
     /// microphone.
     pub hear_voice: bool,
@@ -90,6 +99,8 @@ impl Default for Config {
             cancel_hotkey: DEFAULT_CANCEL_HOTKEY.to_owned(),
             tts_voice: DEFAULT_TTS_VOICE.to_owned(),
             tts_speed: DEFAULT_TTS_SPEED,
+            stream_speech: true,
+            stream_delay_seconds: DEFAULT_STREAM_DELAY_SECONDS,
             hear_voice: false,
             subtitles_enabled: false,
             subtitles_port: DEFAULT_SUBTITLES_PORT,
@@ -122,6 +133,12 @@ impl Config {
         } else {
             DEFAULT_TTS_SPEED
         };
+        self.stream_delay_seconds = if self.stream_delay_seconds.is_finite() {
+            self.stream_delay_seconds
+                .clamp(MIN_STREAM_DELAY_SECONDS, MAX_STREAM_DELAY_SECONDS)
+        } else {
+            DEFAULT_STREAM_DELAY_SECONDS
+        };
         self.threads = self.threads.clamp(MIN_THREADS, MAX_THREADS);
 
         if self.subtitles_port < MIN_SUBTITLES_PORT {
@@ -145,29 +162,40 @@ mod tests {
         let low = Config {
             threads: 0,
             tts_speed: 0.1,
+            stream_delay_seconds: -1.0,
             ..Config::default()
         }
         .normalized();
         let high = Config {
             threads: 200,
             tts_speed: 9.0,
+            stream_delay_seconds: 9.0,
             ..Config::default()
         }
         .normalized();
 
-        assert_eq!((low.threads, low.tts_speed), (MIN_THREADS, MIN_TTS_SPEED));
-        assert_eq!((high.threads, high.tts_speed), (MAX_THREADS, MAX_TTS_SPEED));
+        assert_eq!(
+            (low.threads, low.tts_speed, low.stream_delay_seconds),
+            (MIN_THREADS, MIN_TTS_SPEED, MIN_STREAM_DELAY_SECONDS)
+        );
+        assert_eq!(
+            (high.threads, high.tts_speed, high.stream_delay_seconds),
+            (MAX_THREADS, MAX_TTS_SPEED, MAX_STREAM_DELAY_SECONDS)
+        );
     }
 
     #[test]
-    fn non_finite_tts_speed_resets_to_the_default() {
-        for tts_speed in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+    fn non_finite_numbers_reset_to_their_defaults() {
+        for number in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
             let config = Config {
-                tts_speed,
+                tts_speed: number,
+                stream_delay_seconds: number,
                 ..Config::default()
-            };
+            }
+            .normalized();
 
-            assert_eq!(config.normalized().tts_speed, DEFAULT_TTS_SPEED);
+            assert_eq!(config.tts_speed, DEFAULT_TTS_SPEED);
+            assert_eq!(config.stream_delay_seconds, DEFAULT_STREAM_DELAY_SECONDS);
         }
     }
 

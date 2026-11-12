@@ -6,7 +6,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 /// What a subtitle page is told.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Message {
-    /// The voice started playing this text.
+    /// The voice started playing a phrase, and this is all of the text to show.
     Speaking(String),
     /// The voice stopped playing.
     Ended,

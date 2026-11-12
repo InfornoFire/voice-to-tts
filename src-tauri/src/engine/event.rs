@@ -21,8 +21,12 @@ pub enum EngineEvent {
     StateChanged(EngineState),
     TranscriptPartial(Transcript),
     TranscriptFinal(Transcript),
-    /// The voice started playing this text.
-    SpeechStarted(String),
+    /// The voice started playing `text`.
+    SpeechStarted {
+        text: String,
+        /// Whether the text goes on from the text played just before it, in one sentence.
+        continues: bool,
+    },
     /// The voice finished playing the text of the last [`EngineEvent::SpeechStarted`].
     SpeechEnded,
     /// The voice was stopped before it finished the text of the last

@@ -15,6 +15,7 @@ import { config } from "../state/config";
 import { deviceError, inputDevices, isCableInstalled, refreshInputDevices } from "../state/devices";
 import { voices } from "../state/models";
 import {
+  STREAM_DELAY,
   SUBTITLES_PORT,
   THREAD_COUNTS,
   TTS_SPEED,
@@ -38,6 +39,10 @@ const CLOSE_OPTIONS: { value: CloseAction; label: string }[] = [
   { value: "quit", label: "Quit" },
 ];
 
+const STREAM_SPEECH_HINT =
+  "The voice starts a moment after you begin instead of waiting for you to finish. It can say a word the recognizer would have corrected later.";
+const STREAM_DELAY_HINT =
+  "Shorter starts sooner but sounds choppier and may say a wrong word. Longer is smoother.";
 const HEAR_VOICE_HINT =
   "Also play the voice through your audio output. Without this, only the chat app hears it.";
 const ALWAYS_HEARD_HINT =
@@ -54,6 +59,8 @@ const reloadDevices = () => {
 };
 
 const formatSpeed = (speed: number) => `${speed.toFixed(1)}×`;
+
+const formatSeconds = (seconds: number) => `${seconds.toFixed(1)} s`;
 
 function SettingsView() {
   useEffect(reloadDevices, []);
@@ -97,6 +104,24 @@ function SettingsView() {
             format={formatSpeed}
             onChange={(speed) => updateSettings({ tts_speed: speed })}
           />
+          <CheckboxField
+            label="Speak while I talk"
+            checked={current.stream_speech}
+            hint={STREAM_SPEECH_HINT}
+            onChange={(streamSpeech) => updateSettings({ stream_speech: streamSpeech })}
+          />
+          {current.stream_speech && (
+            <RangeField
+              label="Streaming delay"
+              value={current.stream_delay_seconds ?? STREAM_DELAY.fallback}
+              min={STREAM_DELAY.min}
+              max={STREAM_DELAY.max}
+              step={STREAM_DELAY.step}
+              format={formatSeconds}
+              hint={STREAM_DELAY_HINT}
+              onChange={(delay) => updateSettings({ stream_delay_seconds: delay })}
+            />
+          )}
           <CheckboxField
             label="Hear the voice yourself"
             checked={voiceAlwaysHeard || current.hear_voice}

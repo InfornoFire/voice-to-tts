@@ -1,6 +1,6 @@
 [package]
 name = "voice-to-tts"
-version = "0.1.0"
+version = "0.2.0"
 description = "A speech-to-text and text-to-speech app."
 authors = ["Inforno"]
 edition = "2024"

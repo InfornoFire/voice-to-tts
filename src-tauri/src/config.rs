@@ -12,7 +12,7 @@ pub const MAX_THREADS: u8 = 8;
 pub const MIN_TTS_SPEED: f32 = 0.5;
 pub const MAX_TTS_SPEED: f32 = 2.0;
 pub const MIN_STREAM_DELAY_SECONDS: f32 = 0.0;
-pub const MAX_STREAM_DELAY_SECONDS: f32 = 2.0;
+pub const MAX_STREAM_DELAY_SECONDS: f32 = 10.0;
 pub const MIN_SUBTITLES_PORT: u16 = 1024;
 
 const DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
@@ -169,7 +169,7 @@ mod tests {
         let high = Config {
             threads: 200,
             tts_speed: 9.0,
-            stream_delay_seconds: 9.0,
+            stream_delay_seconds: 99.0,
             ..Config::default()
         }
         .normalized();

@@ -92,8 +92,11 @@ pub(super) fn listen(
             None => {}
         }
 
-        if let Some(phrase) = stream_delay.and_then(|delay| streamer.poll(Instant::now(), delay)) {
-            queue(phrase);
+        if let Some(delay) = stream_delay {
+            let voice_is_idle = shared.state.get() == EngineState::Listening;
+            if let Some(phrase) = streamer.poll(Instant::now(), delay, voice_is_idle) {
+                queue(phrase);
+            }
         }
     }
 }

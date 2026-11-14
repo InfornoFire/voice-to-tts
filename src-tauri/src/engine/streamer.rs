@@ -57,7 +57,14 @@ impl Streamer {
     }
 
     /// Returns the words that were not spoken yet and have been finished for at least `delay`.
-    pub fn poll(&mut self, now: Instant, delay: Duration) -> Option<Phrase> {
+    ///
+    /// An idle voice skips the delay once it has started on the utterance.
+    pub fn poll(&mut self, now: Instant, delay: Duration, voice_is_idle: bool) -> Option<Phrase> {
+        let delay = if voice_is_idle && self.spoken > 0 {
+            Duration::ZERO
+        } else {
+            delay
+        };
         let waiting = self.words.get(self.spoken..)?;
         let ready = waiting
             .iter()
@@ -123,16 +130,40 @@ mod tests {
         let mut streamer = Streamer::default();
 
         streamer.partial("Hello", at(0));
-        assert_eq!(streamer.poll(at(5000), DELAY), None);
+        assert_eq!(streamer.poll(at(5000), DELAY, false), None);
 
         streamer.partial("Hello there", at(600));
-        assert_eq!(streamer.poll(at(1099), DELAY), None);
-        assert_eq!(streamer.poll(at(1100), DELAY), phrase("Hello", false));
-        assert_eq!(streamer.poll(at(5000), DELAY), None);
+        assert_eq!(streamer.poll(at(1099), DELAY, false), None);
+        assert_eq!(
+            streamer.poll(at(1100), DELAY, false),
+            phrase("Hello", false)
+        );
+        assert_eq!(streamer.poll(at(5000), DELAY, false), None);
 
         streamer.partial("Hello there my friend", at(1200));
-        assert_eq!(streamer.poll(at(1699), DELAY), None);
-        assert_eq!(streamer.poll(at(1700), DELAY), phrase("there my", true));
+        assert_eq!(streamer.poll(at(1699), DELAY, false), None);
+        assert_eq!(
+            streamer.poll(at(1700), DELAY, false),
+            phrase("there my", true)
+        );
+    }
+
+    #[test]
+    fn an_idle_voice_does_not_wait_once_the_utterance_is_being_spoken() {
+        let start = Instant::now();
+        let at = |milliseconds| start + Duration::from_millis(milliseconds);
+        let mut streamer = Streamer::default();
+
+        streamer.partial("Hello there", at(0));
+        assert_eq!(streamer.poll(at(100), DELAY, true), None);
+        assert_eq!(streamer.poll(at(500), DELAY, true), phrase("Hello", false));
+
+        streamer.partial("Hello there my friend", at(600));
+        assert_eq!(streamer.poll(at(600), DELAY, false), None);
+        assert_eq!(
+            streamer.poll(at(600), DELAY, true),
+            phrase("there my", true)
+        );
     }
 
     #[test]
@@ -144,9 +175,12 @@ mod tests {
 
         streamer.partial("Hello where you are", at(100));
 
-        assert_eq!(streamer.poll(at(500), DELAY), phrase("Hello", false));
-        assert_eq!(streamer.poll(at(599), DELAY), None);
-        assert_eq!(streamer.poll(at(600), DELAY), phrase("where you", true));
+        assert_eq!(streamer.poll(at(500), DELAY, false), phrase("Hello", false));
+        assert_eq!(streamer.poll(at(599), DELAY, false), None);
+        assert_eq!(
+            streamer.poll(at(600), DELAY, false),
+            phrase("where you", true)
+        );
     }
 
     #[test]
@@ -155,7 +189,7 @@ mod tests {
         let mut streamer = Streamer::default();
         streamer.partial("Hello there my", start);
         assert_eq!(
-            streamer.poll(start + DELAY, DELAY),
+            streamer.poll(start + DELAY, DELAY, false),
             phrase("Hello there", false)
         );
 
@@ -167,7 +201,7 @@ mod tests {
         assert_eq!(streamer.finish(""), None);
 
         streamer.partial("Hello there", start);
-        streamer.poll(start + DELAY, DELAY);
+        streamer.poll(start + DELAY, DELAY, false);
         streamer.reset();
         assert_eq!(streamer.finish("Hello there"), phrase("Hello there", false));
     }

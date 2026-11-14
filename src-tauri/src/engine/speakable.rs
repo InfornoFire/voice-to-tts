@@ -2,7 +2,10 @@
 //!
 //! Such a voice skips every word it has no entry for, and cannot read digits at all.
 
+mod inflection;
 mod numbers;
+
+pub use inflection::ending_entries;
 
 /// The shortest word that is a piece of a longer one.
 const MIN_PIECE_LENGTH: usize = 3;
@@ -12,12 +15,16 @@ const MAX_SPELLED_LENGTH: usize = 3;
 
 const ORDINAL_SUFFIXES: [&str; 4] = ["st", "nd", "rd", "th"];
 
-/// Rewrites `text` so that the words `is_known` rejects are spoken anyway.
+/// Rewrites `text` so that the words `final_phoneme` has no entry for are spoken anyway.
 ///
-/// Numbers become words. An unknown word is read as the known words it is made of, or spelled
-/// out letter by letter when it is an acronym, has no vowel, or has no such parts. Everything
-/// else, including the punctuation, stays as it was.
-pub fn speakable(text: &str, is_known: impl Fn(&str) -> bool) -> String {
+/// `final_phoneme` gives the last phoneme of a word in lowercase, or `None` when the voice does
+/// not know the word.
+///
+/// Numbers become words. An unknown word is read as a known word with a regular ending when it
+/// is one, or as the known words it is made of. Otherwise it is spelled out letter by letter, as
+/// is every acronym and word without a vowel. Everything else, including the punctuation, stays
+/// as it was.
+pub fn speakable(text: &str, final_phoneme: impl Fn(&str) -> Option<char>) -> String {
     let characters: Vec<char> = text.chars().collect();
     let mut spoken = String::with_capacity(text.len());
     let mut position = 0;
@@ -29,7 +36,7 @@ pub fn speakable(text: &str, is_known: impl Fn(&str) -> bool) -> String {
         position = if character.is_ascii_digit() || (character == '$' && before_digit) {
             push_number(&characters, position, &mut spoken)
         } else if character.is_alphabetic() {
-            push_word(&characters, position, &is_known, &mut spoken)
+            push_word(&characters, position, &final_phoneme, &mut spoken)
         } else {
             spoken.push(character);
             position + 1
@@ -92,7 +99,7 @@ fn push_number(characters: &[char], start: usize, spoken: &mut String) -> usize 
 fn push_word(
     characters: &[char],
     start: usize,
-    is_known: &impl Fn(&str) -> bool,
+    final_phoneme: &impl Fn(&str) -> Option<char>,
     spoken: &mut String,
 ) -> usize {
     let mut end = start;
@@ -108,22 +115,23 @@ fn push_word(
         end += 1;
     }
     let word: String = characters[start..end].iter().collect();
-    spoken.push_str(&speakable_word(&word, is_known));
+    spoken.push_str(&speakable_word(&word, final_phoneme));
     end
 }
 
-fn speakable_word(word: &str, is_known: &impl Fn(&str) -> bool) -> String {
+fn speakable_word(word: &str, final_phoneme: &impl Fn(&str) -> Option<char>) -> String {
     let word = word.replace('\u{2019}', "'");
-    if is_known(&word.to_lowercase()) {
+    if final_phoneme(&word.to_lowercase()).is_some() {
         return word;
     }
     word.split('-')
-        .map(|part| speakable_part(part, is_known))
+        .map(|part| speakable_part(part, final_phoneme))
         .collect::<Vec<_>>()
         .join(" ")
 }
 
-fn speakable_part(part: &str, is_known: &impl Fn(&str) -> bool) -> String {
+fn speakable_part(part: &str, final_phoneme: &impl Fn(&str) -> Option<char>) -> String {
+    let is_known = |word: &str| final_phoneme(word).is_some();
     let lowercase = part.to_lowercase();
     if is_known(&lowercase) {
         return part.to_owned();
@@ -146,11 +154,14 @@ fn speakable_part(part: &str, is_known: &impl Fn(&str) -> bool) -> String {
     }
     let is_acronym =
         part.chars().count() > 1 && part.chars().all(|character| !character.is_lowercase());
+    if !is_acronym && let Some(form) = inflection::inflected(&letters, final_phoneme) {
+        return form;
+    }
     let has_vowel = letters.chars().any(|letter| "aeiouy".contains(letter));
     if is_acronym || !has_vowel || letters.chars().count() <= MAX_SPELLED_LENGTH {
         return spell(&letters);
     }
-    match known_pieces(&letters, is_known) {
+    match known_pieces(&letters, &is_known) {
         Some(pieces) => pieces.join(" "),
         None => spell(&letters),
     }
@@ -212,12 +223,58 @@ fn is_group_of_three(characters: &[char], position: usize) -> bool {
 mod tests {
     use super::*;
 
-    fn is_known(word: &str) -> bool {
-        [
-            "a", "the", "hello", "world", "cat", "cats", "dog", "bot", "discord", "don't", "have",
-            "i", "it", "costs", "up", "today",
-        ]
-        .contains(&word)
+    fn final_phoneme(word: &str) -> Option<char> {
+        let known = [
+            ("a", 'a'),
+            ("the", 'e'),
+            ("hello", 'O'),
+            ("world", 'd'),
+            ("cat", 't'),
+            ("cats", 's'),
+            ("dog", 'g'),
+            ("bot", 't'),
+            ("discord", 'd'),
+            ("don't", 't'),
+            ("have", 'v'),
+            ("i", 'I'),
+            ("it", 't'),
+            ("costs", 's'),
+            ("up", 'p'),
+            ("today", 'A'),
+            ("wish", '\u{283}'),
+            ("work", 'k'),
+            ("cost", 't'),
+            ("call", 'l'),
+            ("stop", 'p'),
+            ("dance", 's'),
+            ("memory", 'i'),
+        ];
+        known
+            .iter()
+            .find(|(known, _)| *known == word)
+            .map(|(_, last)| *last)
+    }
+
+    #[test]
+    fn regular_endings_follow_the_sound_of_the_stem() {
+        let cases = [
+            ("dogs", "dog-sfxz"),
+            ("bots", "bot-sfxs"),
+            ("wishes", "wish-sfxiz"),
+            ("memories", "memory-sfxz"),
+            ("worked", "work-sfxt"),
+            ("costed", "cost-sfxid"),
+            ("called", "call-sfxd"),
+            ("stopped", "stop-sfxt"),
+            ("stopping", "stop-sfxing"),
+            ("dancing", "dance-sfxing"),
+            ("Dogs", "dog-sfxz"),
+            ("GPUs", "g p u s"),
+            ("TODAYS", "t o d a y s"),
+        ];
+        for (text, expected) in cases {
+            assert_eq!(speakable(text, final_phoneme), expected, "{text}");
+        }
     }
 
     #[test]
@@ -235,7 +292,7 @@ mod tests {
             ("Zorp", "z o r p"),
         ];
         for (text, expected) in cases {
-            assert_eq!(speakable(text, is_known), expected, "{text}");
+            assert_eq!(speakable(text, final_phoneme), expected, "{text}");
         }
     }
 
@@ -253,7 +310,7 @@ mod tests {
             ("mp3", "m p three"),
         ];
         for (text, expected) in cases {
-            assert_eq!(speakable(text, is_known), expected, "{text}");
+            assert_eq!(speakable(text, final_phoneme), expected, "{text}");
         }
     }
 }

@@ -194,6 +194,49 @@ mod tests {
 
     #[test]
     #[ignore = "needs the models downloaded to the models directory"]
+    fn regular_forms_missing_from_the_lexicon_are_recognized() {
+        const SENTENCES: [(&str, &str); 6] = [
+            ("sentences", "Please read the sentences again."),
+            ("questions", "She answered all the questions."),
+            ("minutes", "It took about ten minutes."),
+            ("listened", "We listened to the radio."),
+            ("devices", "These devices are very small."),
+            ("reasons", "There are many reasons."),
+        ];
+
+        let voices = Manifest::bundled().voices;
+        let mut models = LocalResources::new(models_dir(), voices.clone())
+            .load_models(&Config::default())
+            .unwrap();
+        let silence = |seconds: usize| vec![0.0; seconds * INPUT_SAMPLE_RATE as usize];
+
+        let mut audio = silence(1);
+        for (_, sentence) in SENTENCES {
+            let speech = models.tts.synthesize(sentence, &voices[0].id, 1.0).unwrap();
+            audio.extend(
+                resample_clip(&speech, models.tts.sample_rate(), INPUT_SAMPLE_RATE).unwrap(),
+            );
+            audio.extend(silence(2));
+        }
+
+        let mut listener = Listener::new(models.vad, models.stt);
+        let heard: Vec<String> = audio
+            .chunks(INPUT_SAMPLE_RATE as usize / 50)
+            .filter_map(|chunk| match listener.accept(chunk) {
+                Some(Heard::Final(text)) => Some(text.to_lowercase()),
+                _ => None,
+            })
+            .collect();
+        println!("{heard:#?}");
+
+        let heard = heard.join(" ");
+        for (word, _) in SENTENCES {
+            assert!(heard.contains(word), "{word} was not heard in: {heard}");
+        }
+    }
+
+    #[test]
+    #[ignore = "needs the models downloaded to the models directory"]
     fn partial_text_while_speech_is_recognized() {
         const STEP_SAMPLES: usize = INPUT_SAMPLE_RATE as usize / 50;
         const SENTENCES: [&str; 3] = [

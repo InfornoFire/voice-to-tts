@@ -1,22 +1,24 @@
 //! The words the voice can pronounce.
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::engine::SpeechError;
+use crate::engine::speakable::ending_entries;
 
 const WEAK_FORMS_FILE: &str = "weak-forms.txt";
+const ENDINGS_FILE: &str = "endings.txt";
 
 /// Pronunciations that replace the lexicon's, in its format.
 ///
 /// The lexicon only lists the strong forms of "a", "the" and "to", which sound wrong in running
 /// speech.
-const WEAK_FORMS: &str = "a ɐ\nthe ð ə\nto t ə\n";
+const WEAK_FORMS: &str = "a \u{250}\nthe \u{f0} \u{259}\nto t \u{259}\n";
 
-/// The words a pronunciation lexicon has an entry for.
+/// The words a pronunciation lexicon has an entry for, with the last phoneme of each.
 pub struct Lexicon {
-    words: HashSet<String>,
+    final_phonemes: HashMap<String, char>,
 }
 
 impl Lexicon {
@@ -27,28 +29,38 @@ impl Lexicon {
     }
 
     fn parse(text: &str) -> Self {
-        let words = text
+        let final_phonemes = text
             .lines()
-            .filter_map(|line| line.split_once(' '))
-            .map(|(word, _)| word.to_owned())
+            .filter_map(|line| {
+                let (word, phonemes) = line.split_once(' ')?;
+                Some((word.to_owned(), phonemes.trim_end().chars().next_back()?))
+            })
             .collect();
-        Self { words }
+        Self { final_phonemes }
     }
 
-    /// Whether `word`, in lowercase, has an entry.
-    pub fn contains(&self, word: &str) -> bool {
-        self.words.contains(word)
+    /// The last phoneme of `word`, in lowercase, or `None` when it has no entry.
+    pub fn final_phoneme(&self, word: &str) -> Option<char> {
+        self.final_phonemes.get(word).copied()
     }
 }
 
 /// Writes the replacement pronunciations into `directory` and returns the path of the file.
 pub fn write_weak_forms(directory: &Path, model: &'static str) -> Result<PathBuf, SpeechError> {
-    let path = directory.join(WEAK_FORMS_FILE);
-    if fs::read_to_string(&path).is_ok_and(|text| text == WEAK_FORMS) {
-        return Ok(path);
+    write_entries(&directory.join(WEAK_FORMS_FILE), WEAK_FORMS, model)
+}
+
+/// Writes the words that carry the sounds of inflected endings into `directory` and returns the
+/// path of the file.
+pub fn write_endings(directory: &Path, model: &'static str) -> Result<PathBuf, SpeechError> {
+    write_entries(&directory.join(ENDINGS_FILE), &ending_entries(), model)
+}
+
+fn write_entries(path: &Path, entries: &str, model: &'static str) -> Result<PathBuf, SpeechError> {
+    if !fs::read_to_string(path).is_ok_and(|text| text == entries) {
+        fs::write(path, entries).map_err(|_| SpeechError::Load(model))?;
     }
-    fs::write(&path, WEAK_FORMS).map_err(|_| SpeechError::Load(model))?;
-    Ok(path)
+    Ok(path.to_owned())
 }
 
 #[cfg(test)]
@@ -56,9 +68,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_first_word_of_each_line_is_listed() {
-        let lexicon = Lexicon::parse("hello h ə l \u{2c8} O\nworld w \u{2c8} ɜ ɹ l d\n");
-        assert!(lexicon.contains("hello") && lexicon.contains("world"));
-        assert!(!lexicon.contains("h") && !lexicon.contains("hello world"));
+    fn the_last_phoneme_of_each_line_is_listed() {
+        let lexicon = Lexicon::parse("hello h l O\nworld w r l d\n");
+        assert_eq!(lexicon.final_phoneme("hello"), Some('O'));
+        assert_eq!(lexicon.final_phoneme("world"), Some('d'));
+        assert_eq!(lexicon.final_phoneme("h"), None);
+        assert_eq!(lexicon.final_phoneme("hello world"), None);
     }
 }

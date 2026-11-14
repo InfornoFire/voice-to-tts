@@ -20,7 +20,7 @@ import { navigate } from "../state/view";
 import "./MainView.css";
 
 // The length of the pause is `CANCEL_PAUSE` in `pipeline.rs`.
-const CANCEL_HINT = "Stops the voice and ignores the microphone for 3 seconds.";
+const CANCEL_HINT = "Stops the voice and pauses listening for 3 seconds.";
 
 const openSettings = () => navigate("settings");
 

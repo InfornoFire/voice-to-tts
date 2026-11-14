@@ -31,8 +31,7 @@ function ClosePrompt() {
         Close voice-to-tts?
       </h2>
       <p class="close-prompt-message">
-        Minimize to the tray to keep the shortcut and the voice working in the background. Quit to
-        stop the app completely.
+        Minimize to the tray to keep the app running in the background. Quit to stop it.
       </p>
       <CheckboxField
         label="Remember my choice"

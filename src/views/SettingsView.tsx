@@ -39,15 +39,13 @@ const CLOSE_OPTIONS: { value: CloseAction; label: string }[] = [
   { value: "quit", label: "Quit" },
 ];
 
-const STREAM_SPEECH_HINT =
-  "The voice starts a moment after you begin instead of waiting for you to finish. It can say a word the recognizer would have corrected later.";
+const STREAM_SPEECH_HINT = "The voice starts before you finish talking. It may get a word wrong.";
 const STREAM_DELAY_HINT =
-  "Shorter starts sooner but sounds choppier and may say a wrong word. Longer is smoother.";
+  "How long to wait before the voice starts. Short is faster but choppy. Long is smoother.";
 const HEAR_VOICE_HINT =
-  "Also play the voice through your audio output. Without this, only the chat app hears it.";
-const ALWAYS_HEARD_HINT =
-  "The voice has no virtual microphone to go to here, so it always plays through your audio output.";
-const SUBTITLES_HINT = "Lets an OBS browser source show the text the voice speaks.";
+  "Play the voice on your audio output too. If off, only your chat app hears it.";
+const ALWAYS_HEARD_HINT = "Always on, because there is no virtual microphone to send the voice to.";
+const SUBTITLES_HINT = "Shows what the voice says in OBS.";
 const SUBTITLES_ADDRESS_HINT = "In OBS, add a Browser source and paste this address.";
 
 const closeSettings = () => navigate("main");
@@ -155,7 +153,7 @@ function SettingsView() {
             label="CPU threads"
             value={String(current.threads)}
             options={THREAD_OPTIONS}
-            hint="Fewer threads leave more for other applications, but speech may take longer."
+            hint="Fewer threads use less of your computer, but speech may be slower."
             onChange={(count) => updateSettings({ threads: Number(count) })}
           />
           <HotkeyField
@@ -173,14 +171,14 @@ function SettingsView() {
           <CheckboxField
             label="Start minimized"
             checked={current.start_minimized}
-            hint="Open in the background when the app starts."
+            hint="Hides the window when the app starts."
             onChange={(startMinimized) => updateSettings({ start_minimized: startMinimized })}
           />
           <SelectField
             label="When the window is closed"
             value={current.close_action}
             options={CLOSE_OPTIONS}
-            hint="In the tray, the shortcut and the voice keep working."
+            hint="In the tray, the app keeps running."
             onChange={(action) => updateSettings({ close_action: action })}
           />
           <button type="button" class="button settings-guide" onClick={openGuide}>

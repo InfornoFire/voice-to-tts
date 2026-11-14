@@ -33,9 +33,8 @@ function GuideView() {
       <ViewHeader title="Getting started" actionLabel="Skip" onAction={finishGuide} />
       <div class="guide-steps">
         <p class="guide-intro">
-          voice-to-tts says what you say in a computer voice. It plays the voice through your audio
-          output, or, with a virtual microphone, your chat app hears that voice instead of yours. It
-          takes three steps to set up.
+          voice-to-tts repeats what you say in a computer voice. With a virtual microphone, your
+          chat app hears that voice instead of yours. Setup takes three steps.
         </p>
         <GuideStep number={1} title="Install the virtual microphone (optional)">
           {isCableInstalled.value === null && <p class="hint">Checking for VB-CABLE…</p>}
@@ -43,9 +42,9 @@ function GuideView() {
           {isCableInstalled.value === false && (
             <>
               <p>
-                VB-CABLE is not installed. Without it the voice plays through your audio output. To
-                use it with a chat app, download VB-CABLE, run its setup as administrator, then
-                restart your computer.
+                VB-CABLE is not installed. Without it, the voice plays on your audio output. To use
+                a chat app, download VB-CABLE, run its setup as administrator, and restart your
+                computer.
               </p>
               <button type="button" class="button guide-action" onClick={getCable}>
                 Get VB-CABLE
@@ -56,17 +55,16 @@ function GuideView() {
         <GuideStep number={2} title="Choose it in your chat app">
           <p class="hint">Only needed with VB-CABLE.</p>
           <p>
-            Open the audio settings of your destination chat app and set its microphone (input
-            device) to <strong>CABLE Output</strong>. Do not pick your real microphone, or people
-            will hear your real voice.
+            In your chat app's audio settings, set the microphone to <strong>CABLE Output</strong>.
+            Do not pick your real microphone, or people will hear you instead.
           </p>
           <SignalPath />
         </GuideStep>
         <GuideStep number={3} title="Try it">
           <p>
             {isCableInstalled.value === false
-              ? "Turn the switch on and play the test sentence. You will hear it through your audio output."
-              : "Turn the switch on, play the test sentence, and watch the input level of your chat app move."}
+              ? "Turn the switch on and play the test sentence. You will hear it on your audio output."
+              : "Turn the switch on, play the test sentence, and watch your chat app's input level move."}
           </p>
           <div class="guide-try">
             <PowerToggle checked={isEngineOn.value} onToggle={toggleEngine} />

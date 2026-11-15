@@ -15,6 +15,7 @@ mod speakable;
 mod state;
 mod streamer;
 mod stt;
+mod tone;
 mod tts;
 mod vad;
 

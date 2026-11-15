@@ -18,7 +18,9 @@ import {
   STREAM_DELAY,
   SUBTITLES_PORT,
   THREAD_COUNTS,
+  TTS_PITCH,
   TTS_SPEED,
+  TTS_VOLUME,
   pauseHotkey,
   saveSettings,
   settingsError,
@@ -57,6 +59,10 @@ const reloadDevices = () => {
 };
 
 const formatSpeed = (speed: number) => `${speed.toFixed(1)}×`;
+
+const formatPitch = (semitones: number) => (semitones > 0 ? `+${semitones}` : String(semitones));
+
+const formatPercent = (volume: number) => `${Math.round(volume * 100)}%`;
 
 const formatSeconds = (seconds: number) => `${seconds.toFixed(1)} s`;
 
@@ -101,6 +107,24 @@ function SettingsView() {
             step={TTS_SPEED.step}
             format={formatSpeed}
             onChange={(speed) => updateSettings({ tts_speed: speed })}
+          />
+          <RangeField
+            label="Voice pitch"
+            value={current.tts_pitch ?? TTS_PITCH.fallback}
+            min={TTS_PITCH.min}
+            max={TTS_PITCH.max}
+            step={TTS_PITCH.step}
+            format={formatPitch}
+            onChange={(pitch) => updateSettings({ tts_pitch: pitch })}
+          />
+          <RangeField
+            label="Voice volume"
+            value={current.tts_volume ?? TTS_VOLUME.fallback}
+            min={TTS_VOLUME.min}
+            max={TTS_VOLUME.max}
+            step={TTS_VOLUME.step}
+            format={formatPercent}
+            onChange={(volume) => updateSettings({ tts_volume: volume })}
           />
           <CheckboxField
             label="Speak while I talk"

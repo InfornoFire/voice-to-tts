@@ -5,6 +5,7 @@ use std::thread;
 
 use super::{POLL_INTERVAL, Request, Shared};
 use crate::audio::AudioOutput;
+use crate::engine::tone::Tone;
 use crate::engine::{EngineEvent, EngineState, Tts};
 
 /// Turns each requested text into speech on the output, one clip after the other.
@@ -83,10 +84,11 @@ impl Speaker<'_> {
         }
 
         let config = (self.shared.settings)();
-        let samples = match self
+        let tone = Tone::new(config.tts_speed, config.tts_pitch, config.tts_volume);
+        let speech = self
             .tts
-            .synthesize(&text, &config.tts_voice, config.tts_speed)
-        {
+            .synthesize(&text, &config.tts_voice, tone.synthesis_speed());
+        let mut samples = match speech {
             Ok(samples) => samples,
             Err(error) => {
                 log::warn!("could not turn text into speech: {error:?}");
@@ -105,7 +107,9 @@ impl Speaker<'_> {
             return true;
         }
 
-        if let Err(error) = self.output.play(&samples, self.tts.sample_rate()) {
+        tone.apply_volume(&mut samples);
+        let sample_rate = tone.playback_rate(self.tts.sample_rate());
+        if let Err(error) = self.output.play(&samples, sample_rate) {
             self.shared.fail(error.into());
             return false;
         }
@@ -208,7 +212,10 @@ mod tests {
             cancel_pause: Duration::ZERO,
             state,
             sink,
-            settings: Arc::new(Config::default),
+            settings: Arc::new(|| Config {
+                tts_volume: 0.5,
+                ..Config::default()
+            }),
             utterance_ids: Arc::default(),
             on_fault: Box::new(|error| panic!("{error:?}")),
         };
@@ -243,6 +250,10 @@ mod tests {
         assert_eq!(
             *resources.spoken.lock().unwrap(),
             ["one two three", "typed four"]
+        );
+        assert_eq!(
+            *resources.played.lock().unwrap(),
+            [vec![0.25; 13], vec![0.25; 10]]
         );
         assert_eq!(
             events.try_iter().collect::<Vec<_>>(),

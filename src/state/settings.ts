@@ -9,6 +9,8 @@ const SAVE_DELAY_MS = 400;
 
 /** Limits of the settings, matching `config.rs`. */
 export const TTS_SPEED = { min: 0.5, max: 2, step: 0.1, fallback: 1 };
+export const TTS_PITCH = { min: -6, max: 6, step: 1, fallback: 0 };
+export const TTS_VOLUME = { min: 0, max: 1.5, step: 0.05, fallback: 1 };
 export const STREAM_DELAY = { min: 0, max: 10, step: 0.1, fallback: 0.5 };
 export const THREAD_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8];
 export const SUBTITLES_PORT = { min: 1024, max: 65535 };

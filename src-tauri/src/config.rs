@@ -2,6 +2,8 @@
 
 mod store;
 
+use std::ops::RangeInclusive;
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -11,6 +13,10 @@ pub const MIN_THREADS: u8 = 1;
 pub const MAX_THREADS: u8 = 8;
 pub const MIN_TTS_SPEED: f32 = 0.5;
 pub const MAX_TTS_SPEED: f32 = 2.0;
+pub const MIN_TTS_PITCH: f32 = -6.0;
+pub const MAX_TTS_PITCH: f32 = 6.0;
+pub const MIN_TTS_VOLUME: f32 = 0.0;
+pub const MAX_TTS_VOLUME: f32 = 1.5;
 pub const MIN_STREAM_DELAY_SECONDS: f32 = 0.0;
 pub const MAX_STREAM_DELAY_SECONDS: f32 = 10.0;
 pub const MIN_SUBTITLES_PORT: u16 = 1024;
@@ -19,6 +25,8 @@ const DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
 const DEFAULT_CANCEL_HOTKEY: &str = "Ctrl+Alt+X";
 const DEFAULT_TTS_VOICE: &str = "default";
 const DEFAULT_TTS_SPEED: f32 = 1.0;
+const DEFAULT_TTS_PITCH: f32 = 0.0;
+const DEFAULT_TTS_VOLUME: f32 = 1.0;
 const DEFAULT_STREAM_DELAY_SECONDS: f32 = 0.5;
 const DEFAULT_THREADS: u8 = 2;
 const DEFAULT_SUBTITLES_PORT: u16 = 7421;
@@ -67,6 +75,10 @@ pub struct Config {
     pub tts_voice: String,
     /// Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`].
     pub tts_speed: f32,
+    /// Shift of the voice in semitones, between [`MIN_TTS_PITCH`] and [`MAX_TTS_PITCH`].
+    pub tts_pitch: f32,
+    /// Loudness multiplier between [`MIN_TTS_VOLUME`] and [`MAX_TTS_VOLUME`].
+    pub tts_volume: f32,
     /// Whether the voice speaks while the sentence is still being said, instead of after it ended.
     pub stream_speech: bool,
     /// How long a word waits after the next one appeared before it is spoken, between
@@ -99,6 +111,8 @@ impl Default for Config {
             cancel_hotkey: DEFAULT_CANCEL_HOTKEY.to_owned(),
             tts_voice: DEFAULT_TTS_VOICE.to_owned(),
             tts_speed: DEFAULT_TTS_SPEED,
+            tts_pitch: DEFAULT_TTS_PITCH,
+            tts_volume: DEFAULT_TTS_VOLUME,
             stream_speech: true,
             stream_delay_seconds: DEFAULT_STREAM_DELAY_SECONDS,
             hear_voice: false,
@@ -128,23 +142,41 @@ impl Config {
             voice.to_owned()
         };
 
-        self.tts_speed = if self.tts_speed.is_finite() {
-            self.tts_speed.clamp(MIN_TTS_SPEED, MAX_TTS_SPEED)
-        } else {
-            DEFAULT_TTS_SPEED
-        };
-        self.stream_delay_seconds = if self.stream_delay_seconds.is_finite() {
-            self.stream_delay_seconds
-                .clamp(MIN_STREAM_DELAY_SECONDS, MAX_STREAM_DELAY_SECONDS)
-        } else {
-            DEFAULT_STREAM_DELAY_SECONDS
-        };
+        self.tts_speed = clamp_or_default(
+            self.tts_speed,
+            MIN_TTS_SPEED..=MAX_TTS_SPEED,
+            DEFAULT_TTS_SPEED,
+        );
+        self.tts_pitch = clamp_or_default(
+            self.tts_pitch,
+            MIN_TTS_PITCH..=MAX_TTS_PITCH,
+            DEFAULT_TTS_PITCH,
+        );
+        self.tts_volume = clamp_or_default(
+            self.tts_volume,
+            MIN_TTS_VOLUME..=MAX_TTS_VOLUME,
+            DEFAULT_TTS_VOLUME,
+        );
+        self.stream_delay_seconds = clamp_or_default(
+            self.stream_delay_seconds,
+            MIN_STREAM_DELAY_SECONDS..=MAX_STREAM_DELAY_SECONDS,
+            DEFAULT_STREAM_DELAY_SECONDS,
+        );
         self.threads = self.threads.clamp(MIN_THREADS, MAX_THREADS);
 
         if self.subtitles_port < MIN_SUBTITLES_PORT {
             self.subtitles_port = DEFAULT_SUBTITLES_PORT;
         }
         self
+    }
+}
+
+/// Returns `value` limited to `range`, or `default` when it is not a finite number.
+fn clamp_or_default(value: f32, range: RangeInclusive<f32>, default: f32) -> f32 {
+    if value.is_finite() {
+        value.clamp(*range.start(), *range.end())
+    } else {
+        default
     }
 }
 
@@ -162,6 +194,8 @@ mod tests {
         let low = Config {
             threads: 0,
             tts_speed: 0.1,
+            tts_pitch: -99.0,
+            tts_volume: -1.0,
             stream_delay_seconds: -1.0,
             ..Config::default()
         }
@@ -169,18 +203,44 @@ mod tests {
         let high = Config {
             threads: 200,
             tts_speed: 9.0,
+            tts_pitch: 99.0,
+            tts_volume: 9.0,
             stream_delay_seconds: 99.0,
             ..Config::default()
         }
         .normalized();
 
         assert_eq!(
-            (low.threads, low.tts_speed, low.stream_delay_seconds),
-            (MIN_THREADS, MIN_TTS_SPEED, MIN_STREAM_DELAY_SECONDS)
+            (
+                low.threads,
+                low.tts_speed,
+                low.tts_pitch,
+                low.tts_volume,
+                low.stream_delay_seconds
+            ),
+            (
+                MIN_THREADS,
+                MIN_TTS_SPEED,
+                MIN_TTS_PITCH,
+                MIN_TTS_VOLUME,
+                MIN_STREAM_DELAY_SECONDS
+            )
         );
         assert_eq!(
-            (high.threads, high.tts_speed, high.stream_delay_seconds),
-            (MAX_THREADS, MAX_TTS_SPEED, MAX_STREAM_DELAY_SECONDS)
+            (
+                high.threads,
+                high.tts_speed,
+                high.tts_pitch,
+                high.tts_volume,
+                high.stream_delay_seconds
+            ),
+            (
+                MAX_THREADS,
+                MAX_TTS_SPEED,
+                MAX_TTS_PITCH,
+                MAX_TTS_VOLUME,
+                MAX_STREAM_DELAY_SECONDS
+            )
         );
     }
 
@@ -189,12 +249,16 @@ mod tests {
         for number in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
             let config = Config {
                 tts_speed: number,
+                tts_pitch: number,
+                tts_volume: number,
                 stream_delay_seconds: number,
                 ..Config::default()
             }
             .normalized();
 
             assert_eq!(config.tts_speed, DEFAULT_TTS_SPEED);
+            assert_eq!(config.tts_pitch, DEFAULT_TTS_PITCH);
+            assert_eq!(config.tts_volume, DEFAULT_TTS_VOLUME);
             assert_eq!(config.stream_delay_seconds, DEFAULT_STREAM_DELAY_SECONDS);
         }
     }

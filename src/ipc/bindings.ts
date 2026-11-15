@@ -81,6 +81,10 @@ export type Config = {
 	tts_voice: string,
 	/**  Playback speed multiplier between [`MIN_TTS_SPEED`] and [`MAX_TTS_SPEED`]. */
 	tts_speed: number | null,
+	/**  Shift of the voice in semitones, between [`MIN_TTS_PITCH`] and [`MAX_TTS_PITCH`]. */
+	tts_pitch: number | null,
+	/**  Loudness multiplier between [`MIN_TTS_VOLUME`] and [`MAX_TTS_VOLUME`]. */
+	tts_volume: number | null,
 	/**  Whether the voice speaks while the sentence is still being said, instead of after it ended. */
 	stream_speech: boolean,
 	/**

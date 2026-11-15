@@ -104,7 +104,12 @@ mod tests {
 
     #[test]
     fn clips_keep_their_duration_and_level_across_rates() {
-        for (from_rate, to_rate) in [(22_050, 48_000), (24_000, 44_100), (48_000, 16_000)] {
+        for (from_rate, to_rate) in [
+            (22_050, 48_000),
+            (24_000, 44_100),
+            (25_428, 48_000),
+            (48_000, 16_000),
+        ] {
             let converted = resample_clip(&sine(from_rate, 1), from_rate, to_rate).unwrap();
 
             let expected_length = f64::from(to_rate);
